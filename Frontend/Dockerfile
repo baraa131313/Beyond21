@@ -12,10 +12,9 @@ RUN npm run build
 FROM node:20-slim
 
 WORKDIR /app
-COPY --from=build /app/dist dist
-COPY --from=build /app/node_modules node_modules
-COPY --from=build /app/package.json package.json
+RUN npm install -g serve
+COPY --from=build /app/dist/client ./dist
 
 EXPOSE 3000
 
-CMD ["node", "dist/server/server.js"]
+CMD ["sh", "-c", "serve dist -s -l ${PORT:-3000}"]
