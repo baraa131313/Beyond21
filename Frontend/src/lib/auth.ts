@@ -1,8 +1,10 @@
 import { createContext, useContext } from "react";
 
+const DEFAULT_BACKEND = "https://interactive-learning-platform-production-3b22.up.railway.app";
+
 const API = () => {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem("beyond21_backend_url") || "";
+  if (typeof window === "undefined") return DEFAULT_BACKEND;
+  return localStorage.getItem("beyond21_backend_url") || DEFAULT_BACKEND;
 };
 
 export interface User {

@@ -69,11 +69,6 @@ class UserLogin(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
-    token: str
-    user: "UserOut"
-
-
 class UserOut(BaseModel):
     id: int
     email: str
@@ -82,6 +77,11 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    token: str
+    user: UserOut
 
 
 # --- Child schemas ---
