@@ -10,6 +10,11 @@ alembic==1.12.1
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
+# Auth
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
 # Environment
 python-dotenv==1.0.0
 

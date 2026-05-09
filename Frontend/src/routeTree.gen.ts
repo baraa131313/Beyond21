@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ParentRouteImport } from './routes/parent'
 import { Route as LearnRouteImport } from './routes/learn'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SelectChildRouteImport } from './routes/select-child'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as LearnWordRouteImport } from './routes/learn.word'
 import { Route as LearnVoiceRouteImport } from './routes/learn.voice'
+import { Route as LearnTalkRouteImport } from './routes/learn.talk'
 import { Route as LearnPictureRouteImport } from './routes/learn.picture'
 import { Route as LearnExercisesRouteImport } from './routes/learn.exercises'
 
@@ -26,6 +30,21 @@ const ParentRoute = ParentRouteImport.update({
 const LearnRoute = LearnRouteImport.update({
   id: '/learn',
   path: '/learn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelectChildRoute = SelectChildRouteImport.update({
+  id: '/select-child',
+  path: '/select-child',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -48,6 +67,11 @@ const LearnVoiceRoute = LearnVoiceRouteImport.update({
   path: '/voice',
   getParentRoute: () => LearnRoute,
 } as any)
+const LearnTalkRoute = LearnTalkRouteImport.update({
+  id: '/talk',
+  path: '/talk',
+  getParentRoute: () => LearnRoute,
+} as any)
 const LearnPictureRoute = LearnPictureRouteImport.update({
   id: '/picture',
   path: '/picture',
@@ -62,18 +86,26 @@ const LearnExercisesRoute = LearnExercisesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/learn': typeof LearnRouteWithChildren
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/select-child': typeof SelectChildRoute
   '/parent': typeof ParentRoute
   '/learn/exercises': typeof LearnExercisesRoute
   '/learn/picture': typeof LearnPictureRoute
+  '/learn/talk': typeof LearnTalkRoute
   '/learn/voice': typeof LearnVoiceRoute
   '/learn/word': typeof LearnWordRoute
   '/learn/': typeof LearnIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/select-child': typeof SelectChildRoute
   '/parent': typeof ParentRoute
   '/learn/exercises': typeof LearnExercisesRoute
   '/learn/picture': typeof LearnPictureRoute
+  '/learn/talk': typeof LearnTalkRoute
   '/learn/voice': typeof LearnVoiceRoute
   '/learn/word': typeof LearnWordRoute
   '/learn': typeof LearnIndexRoute
@@ -82,9 +114,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/learn': typeof LearnRouteWithChildren
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/select-child': typeof SelectChildRoute
   '/parent': typeof ParentRoute
   '/learn/exercises': typeof LearnExercisesRoute
   '/learn/picture': typeof LearnPictureRoute
+  '/learn/talk': typeof LearnTalkRoute
   '/learn/voice': typeof LearnVoiceRoute
   '/learn/word': typeof LearnWordRoute
   '/learn/': typeof LearnIndexRoute
@@ -94,18 +130,26 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/learn'
+    | '/login'
+    | '/signup'
+    | '/select-child'
     | '/parent'
     | '/learn/exercises'
     | '/learn/picture'
+    | '/learn/talk'
     | '/learn/voice'
     | '/learn/word'
     | '/learn/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
+    | '/signup'
+    | '/select-child'
     | '/parent'
     | '/learn/exercises'
     | '/learn/picture'
+    | '/learn/talk'
     | '/learn/voice'
     | '/learn/word'
     | '/learn'
@@ -113,9 +157,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/learn'
+    | '/login'
+    | '/signup'
+    | '/select-child'
     | '/parent'
     | '/learn/exercises'
     | '/learn/picture'
+    | '/learn/talk'
     | '/learn/voice'
     | '/learn/word'
     | '/learn/'
@@ -124,6 +172,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LearnRoute: typeof LearnRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
+  SelectChildRoute: typeof SelectChildRoute
   ParentRoute: typeof ParentRoute
 }
 
@@ -134,6 +185,27 @@ declare module '@tanstack/react-router' {
       path: '/parent'
       fullPath: '/parent'
       preLoaderRoute: typeof ParentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/select-child': {
+      id: '/select-child'
+      path: '/select-child'
+      fullPath: '/select-child'
+      preLoaderRoute: typeof SelectChildRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learn': {
@@ -171,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearnVoiceRouteImport
       parentRoute: typeof LearnRoute
     }
+    '/learn/talk': {
+      id: '/learn/talk'
+      path: '/talk'
+      fullPath: '/learn/talk'
+      preLoaderRoute: typeof LearnTalkRouteImport
+      parentRoute: typeof LearnRoute
+    }
     '/learn/picture': {
       id: '/learn/picture'
       path: '/picture'
@@ -191,6 +270,7 @@ declare module '@tanstack/react-router' {
 interface LearnRouteChildren {
   LearnExercisesRoute: typeof LearnExercisesRoute
   LearnPictureRoute: typeof LearnPictureRoute
+  LearnTalkRoute: typeof LearnTalkRoute
   LearnVoiceRoute: typeof LearnVoiceRoute
   LearnWordRoute: typeof LearnWordRoute
   LearnIndexRoute: typeof LearnIndexRoute
@@ -199,6 +279,7 @@ interface LearnRouteChildren {
 const LearnRouteChildren: LearnRouteChildren = {
   LearnExercisesRoute: LearnExercisesRoute,
   LearnPictureRoute: LearnPictureRoute,
+  LearnTalkRoute: LearnTalkRoute,
   LearnVoiceRoute: LearnVoiceRoute,
   LearnWordRoute: LearnWordRoute,
   LearnIndexRoute: LearnIndexRoute,
@@ -209,6 +290,9 @@ const LearnRouteWithChildren = LearnRoute._addFileChildren(LearnRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LearnRoute: LearnRouteWithChildren,
+  LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
+  SelectChildRoute: SelectChildRoute,
   ParentRoute: ParentRoute,
 }
 export const routeTree = rootRouteImport

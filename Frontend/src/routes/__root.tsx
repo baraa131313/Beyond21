@@ -1,5 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useState } from "react";
 import appCss from "../styles.css?url";
+import { AuthContext, getStoredUser, getActiveChild, type User, type Child } from "@/lib/auth";
 
 function NotFoundComponent() {
   return (
@@ -41,9 +43,20 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootShell,
-  component: () => <Outlet />,
+  component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
+
+function RootComponent() {
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [child, setChild] = useState<Child | null>(() => getActiveChild());
+
+  return (
+    <AuthContext.Provider value={{ user, child, setUser, setChild }}>
+      <Outlet />
+    </AuthContext.Provider>
+  );
+}
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (

@@ -51,8 +51,98 @@ class Lesson(LessonBase):
 
 
 class ErrorResponse(BaseModel):
-    """Standard error response schema."""
-
     error: str
     message: str
     status_code: int
+
+
+# --- Auth schemas ---
+
+class UserRegister(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=1, max_length=255)
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    token: str
+    user: "UserOut"
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Child schemas ---
+
+class ChildCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    age: Optional[int] = Field(None, ge=1, le=30)
+    avatar: str = Field("🧒", max_length=50)
+    pin: Optional[str] = Field(None, max_length=6)
+
+
+class ChildUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    age: Optional[int] = Field(None, ge=1, le=30)
+    avatar: Optional[str] = Field(None, max_length=50)
+    pin: Optional[str] = Field(None, max_length=6)
+
+
+class ChildOut(BaseModel):
+    id: int
+    name: str
+    age: Optional[int]
+    avatar: str
+    parent_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Progress schemas ---
+
+class ProgressCreate(BaseModel):
+    child_id: int
+    module: str = Field(..., max_length=50)
+    word: Optional[str] = Field(None, max_length=255)
+    score: Optional[float] = None
+    correct: int = 0
+    wrong: int = 0
+    stars: int = 0
+
+
+class ProgressOut(BaseModel):
+    id: int
+    child_id: int
+    module: str
+    word: Optional[str]
+    score: Optional[float]
+    correct: int
+    wrong: int
+    stars: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChildProgressSummary(BaseModel):
+    total_stars: int
+    total_correct: int
+    total_wrong: int
+    words_practiced: int
+    modules_used: list[str]
+    recent: list[ProgressOut]

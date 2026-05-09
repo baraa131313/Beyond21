@@ -5,6 +5,18 @@ import confetti from "canvas-confetti";
 import { WORDS } from "@/data/words";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
+import { AudioRecorder } from "@/lib/recorder";
+import { pronounce, getApiUrl, playReferenceAudio } from "@/lib/api";
+
+function speakToChild(text: string, lang = "ar-TN") {
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    u.rate = 0.8;
+    window.speechSynthesis.speak(u);
+  }
+}
 
 export const Route = createFileRoute("/learn/word")({
   head: () => ({ meta: [{ title: "Learn a Word — Beyond 21" }] }),
@@ -19,52 +31,108 @@ function LearnWord() {
   const [stars, setStars] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [quality, setQuality] = useState(3);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [phonemeScores, setPhonemeScores] = useState<Array<{ arabic: string; stars: number }>>([]);
+  const recorderRef = useRef(new AudioRecorder());
   const word = WORDS[idx];
 
-  function clearTimer() { if (timerRef.current) clearTimeout(timerRef.current); }
-
   function playReference() {
+    if (getApiUrl()) {
+      playReferenceAudio(word.ar).catch(() => {
+        fallbackSpeak(word.ar);
+      });
+    } else {
+      fallbackSpeak(word.ar);
+    }
+  }
+
+  function fallbackSpeak(text: string) {
     if ("speechSynthesis" in window) {
-      const u = new SpeechSynthesisUtterance(word.ar);
+      const u = new SpeechSynthesisUtterance(text);
       u.lang = "ar-TN";
       window.speechSynthesis.speak(u);
     }
   }
 
-  function handleMic() {
-    clearTimer();
+  async function handleMic() {
+    if (!getApiUrl()) {
+      alert("Please set the API URL first.\nGo to the Parent Dashboard → Settings tab.");
+      return;
+    }
+
     setStatus("listening");
-    timerRef.current = setTimeout(() => {
-      setStatus("processing");
-      timerRef.current = setTimeout(() => {
-        const correct = Math.random() > 0.35;
-        if (correct) {
-          confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ["#A3D2CA", "#F7D1BA", "#F4A4C0", "#FFD93D"] });
-          setStatus("correct");
-          setStars((s) => s + 1);
-          setQuality(3);
-          timerRef.current = setTimeout(next, 2500);
-        } else {
-          setQuality(attempts === 0 ? 2 : 1);
-          setAttempts((a) => a + 1);
-          setStatus("incorrect");
-          setTimeout(playReference, 600);
-          if (attempts >= 2) {
-            timerRef.current = setTimeout(() => {
-              setStatus("idle");
-              next();
-            }, 2500);
+    setFeedback("");
+    setPhonemeScores([]);
+
+    try {
+      await recorderRef.current.start();
+
+      setTimeout(async () => {
+        const audioBlob = await recorderRef.current.stop();
+        setStatus("processing");
+
+        try {
+          const result = await pronounce(audioBlob, word.ar);
+
+          if (result.error) {
+            setStatus("idle");
+            setFeedback(`Server error: ${result.error}`);
+            return;
           }
+
+          if (result.passed) {
+            confetti({
+              particleCount: 100,
+              spread: 80,
+              origin: { y: 0.6 },
+              colors: ["#A3D2CA", "#F7D1BA", "#F4A4C0", "#FFD93D"],
+            });
+            setStatus("correct");
+            setStars((s) => s + 1);
+            setQuality(3);
+            setFeedback(result.feedback || "");
+            setPhonemeScores(result.phoneme_scores!.map((p) => ({ arabic: p.arabic, stars: p.stars })));
+            speakToChild("برافو! ممتاز!", "ar");
+            setTimeout(next, 3000);
+          } else {
+            const avgStars = Math.round((result.overall_score || 0) / 33);
+            setQuality(Math.max(1, Math.min(3, avgStars)));
+            setAttempts((a) => a + 1);
+            setStatus("incorrect");
+            setFeedback(result.feedback || "");
+            setPhonemeScores(result.phoneme_scores!.map((p) => ({ arabic: p.arabic, stars: p.stars })));
+
+            // Voice feedback: encourage + play correct pronunciation
+            speakToChild("حاول مرة أخرى، اسمع", "ar");
+            setTimeout(async () => {
+              await playReferenceAudio(word.ar).catch(() => {});
+            }, 1500);
+
+            if (attempts >= 2) {
+              setTimeout(() => {
+                speakToChild("يلا نجربو كلمة أخرى", "ar");
+                setStatus("idle");
+                next();
+              }, 5000);
+            }
+          }
+        } catch (err) {
+          setStatus("idle");
+          setFeedback("Connection error — check if Colab is running");
         }
-      }, 1100);
-    }, 1400);
+      }, 2500);
+    } catch {
+      setStatus("idle");
+      setFeedback("Microphone access denied");
+    }
   }
 
   function next() {
     setStatus("idle");
     setAttempts(0);
     setQuality(3);
+    setFeedback("");
+    setPhonemeScores([]);
     setIdx((i) => (i + 1) % WORDS.length);
   }
 
@@ -136,22 +204,52 @@ function LearnWord() {
             <motion.div key={status} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center min-h-16">
               {status === "idle" && <div className="text-foreground/70 font-semibold">Tap the mic and say it! 🎤</div>}
               {status === "listening" && <div className="text-2xl font-bold">I'm listening… 🌈</div>}
-              {status === "processing" && <div className="text-2xl font-bold">🎧 Listening to your voice…</div>}
-              {status === "correct" && <div className="text-3xl font-bold text-primary">🎉 Perfect! ⭐</div>}
+              {status === "processing" && <div className="text-2xl font-bold">🎧 Checking your pronunciation…</div>}
+              {status === "correct" && (
+                <div className="space-y-2">
+                  <div className="text-3xl font-bold text-primary">🎉 Perfect! ⭐</div>
+                  {phonemeScores.length > 0 && (
+                    <div className="flex justify-center gap-2 flex-wrap">
+                      {phonemeScores.map((p, i) => (
+                        <span key={i} className="bg-green-100 rounded-full px-3 py-1 text-lg font-bold">
+                          {p.arabic} {"⭐".repeat(p.stars)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {status === "incorrect" && (
                 <div className="space-y-3">
-                  <div className="text-xl font-bold">Almost there! 🤔👍</div>
+                  <div className="text-2xl font-bold">🤔 Almost! Listen and try again 👇</div>
                   <div className="flex justify-center gap-1 text-3xl">
                     {[1, 2, 3].map((s) => (
                       <span key={s} className={s <= quality ? "" : "grayscale opacity-30"}>⭐</span>
                     ))}
                   </div>
+                  {phonemeScores.length > 0 && (
+                    <div className="flex justify-center gap-3 flex-wrap">
+                      {phonemeScores.map((p, i) => (
+                        <motion.span
+                          key={i}
+                          animate={p.stars < 2 ? { scale: [1, 1.3, 1] } : {}}
+                          transition={{ duration: 1, repeat: Infinity }}
+                          className={`rounded-2xl px-4 py-2 text-2xl font-bold ${p.stars >= 3 ? "bg-green-200 border-2 border-green-400" : p.stars >= 2 ? "bg-yellow-200 border-2 border-yellow-400" : "bg-red-200 border-2 border-red-400 animate-pulse"}`}
+                        >
+                          {p.arabic}
+                        </motion.span>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={playReference} className="rounded-full bg-sky text-white px-6 py-3 text-xl font-bold shadow-soft hover:scale-105 transition">
+                    🔊 Listen again
+                  </button>
                   {attempts < 3 && (
                     <button onClick={() => setStatus("idle")} className="rounded-full bg-sunny px-8 py-4 text-xl font-bold shadow-soft hover:scale-105 transition animate-bob">
-                      🔄 Try again!
+                      🎤 Try again!
                     </button>
                   )}
-                  {attempts >= 3 && <div className="text-base text-muted-foreground">Let's try another one! 🌟</div>}
+                  {attempts >= 3 && <div className="text-xl font-bold mt-2">🌟 Great effort! Next word!</div>}
                 </div>
               )}
             </motion.div>

@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WORDS, AVATARS } from "@/data/words";
 import { Beyond21Logo } from "@/components/Beyond21Logo";
 import { useAdaptive, colorForScore } from "@/lib/adaptive";
+import { getApiUrl, setApiUrl, checkHealth } from "@/lib/api";
 
 export const Route = createFileRoute("/parent")({
   head: () => ({
@@ -15,13 +16,14 @@ export const Route = createFileRoute("/parent")({
   component: Parent,
 });
 
-type TabKey = "progress" | "speech" | "exercises" | "medical" | "ai";
+type TabKey = "progress" | "speech" | "exercises" | "medical" | "ai" | "settings";
 const TABS: { k: TabKey; i: string; t: string }[] = [
   { k: "progress", i: "📈", t: "My Child's Progress" },
   { k: "speech", i: "🎤", t: "Speech & Pronunciation" },
   { k: "exercises", i: "🧩", t: "Exercises & Scores" },
   { k: "medical", i: "🧠", t: "Medical Insights" },
   { k: "ai", i: "🤖", t: "AI Adaptation" },
+  { k: "settings", i: "⚙️", t: "Settings" },
 ];
 
 const CHILD = { ...AVATARS[0], age: 7, totalWords: 48, exercises: 23, mapPos: 6 };
@@ -73,6 +75,7 @@ function Parent() {
             {tab === "exercises" && <ExercisesTab />}
             {tab === "medical" && <Medical />}
             {tab === "ai" && <AITab />}
+            {tab === "settings" && <SettingsTab />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -414,6 +417,71 @@ function Medical() {
           </div>
           <p className="mt-3 text-sm text-muted-foreground">The model focused on the <strong>temporal lobe region</strong>, which is associated with language processing.</p>
         </div>
+      </div>
+    </>
+  );
+}
+
+/* ─── Tab 6: Settings ─── */
+function SettingsTab() {
+  const [url, setUrl] = useState(getApiUrl());
+  const [status, setStatus] = useState<"idle" | "checking" | "connected" | "error">("idle");
+
+  useEffect(() => {
+    if (getApiUrl()) {
+      setStatus("checking");
+      checkHealth().then((ok) => setStatus(ok ? "connected" : "error"));
+    }
+  }, []);
+
+  async function handleSave() {
+    setApiUrl(url);
+    setStatus("checking");
+    const ok = await checkHealth();
+    setStatus(ok ? "connected" : "error");
+  }
+
+  return (
+    <>
+      <H t="Settings" s="Connect to the ASR backend (Colab)" />
+      <div className="bg-white rounded-3xl p-6 shadow-soft max-w-xl">
+        <h3 className="font-bold mb-4">🔗 API Connection</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Paste the ngrok URL from your Colab notebook (Notebook 09) here.
+          The app will use this to send audio for speech recognition and pronunciation scoring.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://xxxx-xx-xx.ngrok-free.app"
+            className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <button
+            onClick={handleSave}
+            className="rounded-xl bg-primary text-primary-foreground px-6 py-3 font-bold hover:scale-105 transition"
+          >
+            Save
+          </button>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          {status === "idle" && <span className="text-sm text-muted-foreground">Not configured yet</span>}
+          {status === "checking" && <span className="text-sm text-muted-foreground">⏳ Checking connection...</span>}
+          {status === "connected" && <span className="text-sm text-green-600 font-bold">✅ Connected — API is running!</span>}
+          {status === "error" && <span className="text-sm text-red-600 font-bold">❌ Cannot reach API — check if Colab is running</span>}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl p-6 shadow-soft max-w-xl mt-4">
+        <h3 className="font-bold mb-3">📋 How to connect</h3>
+        <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+          <li>Open <strong>Notebook 09</strong> on Google Colab</li>
+          <li>Run all cells (models load in ~3 minutes)</li>
+          <li>Copy the <strong>ngrok URL</strong> printed in the last cell</li>
+          <li>Paste it above and click Save</li>
+          <li>The app is now connected to your ASR pipeline!</li>
+        </ol>
       </div>
     </>
   );

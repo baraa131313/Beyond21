@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { WORDS } from "@/data/words";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
+import { AudioRecorder } from "@/lib/recorder";
+import { getApiUrl, playReferenceAudio, startTraining, getTrainingStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/learn/voice")({
   head: () => ({ meta: [{ title: "My Voice — Beyond 21" }] }),
@@ -13,27 +15,113 @@ export const Route = createFileRoute("/learn/voice")({
 
 const TARGET = 20;
 
-function speak(t: string) {
-  if ("speechSynthesis" in window) {
-    const u = new SpeechSynthesisUtterance(t);
+async function enrollAudio(audioBlob: Blob, word: string, speakerId: string) {
+  const base = getApiUrl();
+  if (!base) return;
+  const form = new FormData();
+  form.append("audio", audioBlob, "recording.wav");
+  form.append("word", word);
+  form.append("speaker_id", speakerId);
+  await fetch(`${base}/api/enroll`, {
+    method: "POST",
+    body: form,
+    headers: { "ngrok-skip-browser-warning": "true" },
+  });
+}
+
+function playReference(word: string) {
+  if (getApiUrl()) {
+    playReferenceAudio(word).catch(() => {
+      if ("speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance(word);
+        u.lang = "ar-TN";
+        window.speechSynthesis.speak(u);
+      }
+    });
+  } else if ("speechSynthesis" in window) {
+    const u = new SpeechSynthesisUtterance(word);
     u.lang = "ar-TN";
     window.speechSynthesis.speak(u);
   }
 }
 
 function Voice() {
-  const items = WORDS.concat(WORDS).concat(WORDS).slice(0, TARGET);
+  const items = WORDS.concat(WORDS).slice(0, TARGET);
   const [recorded, setRecorded] = useState<Set<string>>(new Set());
   const [recordingId, setRecordingId] = useState<string | null>(null);
+  const [training, setTraining] = useState(false);
+  const [trainProgress, setTrainProgress] = useState("");
+  const [trainDone, setTrainDone] = useState(false);
+  const recorderRef = useRef(new AudioRecorder());
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function startRec(uid: string) {
+  async function startRec(uid: string, word: string) {
+    if (!getApiUrl()) {
+      alert("Please set the API URL first.\nGo to the Parent Dashboard → Settings tab.");
+      return;
+    }
+
     setRecordingId(uid);
-    setTimeout(() => {
-      setRecorded((s) => new Set(s).add(uid));
+    try {
+      await recorderRef.current.start();
+
+      setTimeout(async () => {
+        const audioBlob = await recorderRef.current.stop();
+        setRecordingId(null);
+
+        try {
+          await enrollAudio(audioBlob, word, "child_01");
+          setRecorded((s) => new Set(s).add(uid));
+          if (recorded.size + 1 >= TARGET) {
+            confetti({ particleCount: 200, spread: 100 });
+          }
+        } catch {
+          setRecorded((s) => new Set(s).add(uid));
+        }
+      }, 2500);
+    } catch {
       setRecordingId(null);
-      if (recorded.size + 1 >= TARGET) confetti({ particleCount: 200, spread: 100 });
-    }, 1500);
+      alert("Microphone access denied");
+    }
   }
+
+  async function handleTrain() {
+    setTraining(true);
+    setTrainProgress("Starting training...");
+    try {
+      const res = await startTraining("child_01");
+      if (res.error) {
+        setTrainProgress(res.error);
+        setTraining(false);
+        return;
+      }
+      setTrainProgress(res.message || "Training started...");
+
+      pollRef.current = setInterval(async () => {
+        try {
+          const status = await getTrainingStatus();
+          setTrainProgress(status.progress);
+          if (!status.is_training && status.progress.startsWith("Done")) {
+            if (pollRef.current) clearInterval(pollRef.current);
+            setTraining(false);
+            setTrainDone(true);
+            confetti({ particleCount: 150, spread: 90 });
+          }
+        } catch {
+          // keep polling
+        }
+      }, 3000);
+    } catch {
+      setTrainProgress("Connection error");
+      setTraining(false);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
 
   const done = recorded.size >= TARGET;
 
@@ -50,12 +138,39 @@ function Voice() {
       </div>
 
       <section className="relative z-10 max-w-3xl mx-auto px-6 mt-4 pb-16">
-        {done ? (
+        {trainDone ? (
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-white rounded-[3rem] p-12 text-center shadow-pop">
+            <div className="text-8xl">🧠</div>
+            <h1 className="text-4xl font-bold mt-4">Voice trained! 🎉</h1>
+            <p className="text-muted-foreground mt-2">The model now understands your voice!</p>
+            <Link to="/learn/talk" className="mt-6 inline-block rounded-full bg-gradient-to-r from-mint to-happy text-white px-8 py-4 text-xl font-bold shadow-pop hover:scale-105 transition">
+              🗣️ Try Free Talk!
+            </Link>
+          </motion.div>
+        ) : done ? (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-white rounded-[3rem] p-12 text-center shadow-pop">
             <div className="text-8xl">🎉</div>
             <h1 className="text-4xl font-bold mt-4">Your voice is ready! 🌟</h1>
-            <p className="text-muted-foreground mt-2">Beyond 21 knows your voice now!</p>
-            <button onClick={() => setRecorded(new Set())} className="mt-6 rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold">Record again</button>
+            <p className="text-muted-foreground mt-2">Now let's train the model on your voice!</p>
+
+            <button
+              onClick={handleTrain}
+              disabled={training}
+              className="mt-6 rounded-full bg-gradient-to-r from-sky to-bubble text-white px-8 py-4 text-xl font-bold shadow-pop hover:scale-105 transition disabled:opacity-50 disabled:animate-pulse"
+            >
+              {training ? "🧠 Training..." : "🚀 Train My Voice"}
+            </button>
+
+            {trainProgress && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 bg-sky/10 rounded-2xl p-4">
+                <p className="font-semibold text-lg">{trainProgress}</p>
+                {training && <p className="text-sm text-muted-foreground mt-1">This takes 2-3 minutes, please wait...</p>}
+              </motion.div>
+            )}
+
+            <button onClick={() => setRecorded(new Set())} className="mt-4 rounded-full bg-muted px-6 py-3 font-bold text-sm">
+              Record more words
+            </button>
           </motion.div>
         ) : (
           <>
@@ -91,11 +206,11 @@ function Voice() {
                     <div className="flex-1">
                       <div className="font-arabic text-2xl font-bold">{w.ar}</div>
                     </div>
-                    <button onClick={() => speak(w.ar)} className="w-10 h-10 rounded-full bg-sky text-white grid place-items-center" aria-label="Listen">🔊</button>
+                    <button onClick={() => playReference(w.ar)} className="w-10 h-10 rounded-full bg-sky text-white grid place-items-center" aria-label="Listen">🔊</button>
                     {isDone ? (
                       <button onClick={() => { const n = new Set(recorded); n.delete(uid); setRecorded(n); }} className="w-10 h-10 rounded-full bg-happy grid place-items-center text-xl" aria-label="Re-record">✅</button>
                     ) : (
-                      <button onClick={() => startRec(uid)} disabled={!!recordingId} className={`w-10 h-10 rounded-full grid place-items-center text-xl ${isRec ? "bg-destructive animate-breathe" : "bg-destructive/80 hover:scale-110"}`} aria-label="Record">
+                      <button onClick={() => startRec(uid, w.ar)} disabled={!!recordingId} className={`w-10 h-10 rounded-full grid place-items-center text-xl ${isRec ? "bg-destructive animate-breathe" : "bg-destructive/80 hover:scale-110"}`} aria-label="Record">
                         {isRec ? "⏺️" : "🔴"}
                       </button>
                     )}

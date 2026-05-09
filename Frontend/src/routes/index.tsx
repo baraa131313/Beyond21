@@ -4,6 +4,7 @@ import onboarding from "@/assets/onboarding-hero.jpg";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { Beyond21Logo } from "@/components/Beyond21Logo";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,6 +17,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { user } = useAuth();
+
   return (
     <main className="min-h-screen relative overflow-hidden">
       <FloatingBackground />
@@ -26,12 +29,25 @@ function Index() {
           <span className="font-bold text-2xl tracking-tight">Beyond 21</span>
         </div>
         <nav className="flex items-center gap-2 md:gap-4">
-          <Link to="/parent" className="hidden md:inline-flex rounded-full px-5 py-2.5 font-semibold font-pro text-foreground/80 hover:bg-white/60 transition">
-            👨‍👩‍👧 Parent space
-          </Link>
-          <Link to="/learn" className="rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold shadow-soft hover:scale-105 active:scale-95 transition">
-            🎈 Start learning →
-          </Link>
+          {user ? (
+            <>
+              <Link to="/parent" className="hidden md:inline-flex rounded-full px-5 py-2.5 font-semibold font-pro text-foreground/80 hover:bg-white/60 transition">
+                👨‍👩‍👧 Parent space
+              </Link>
+              <Link to="/select-child" className="rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold shadow-soft hover:scale-105 active:scale-95 transition">
+                🎈 Start learning →
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="hidden md:inline-flex rounded-full px-5 py-2.5 font-semibold font-pro text-foreground/80 hover:bg-white/60 transition">
+                Sign in
+              </Link>
+              <Link to="/signup" className="rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold shadow-soft hover:scale-105 active:scale-95 transition">
+                Get started →
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -48,12 +64,25 @@ function Index() {
             Beyond 21 listens, learns and cheers — gentle activities in Tunisian Arabic with a friend who knows when to laugh, hint, and rest.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/learn" className="rounded-full bg-primary text-primary-foreground px-8 py-4 text-lg font-bold shadow-pop hover:scale-105 active:scale-95 transition">
-              🎈 Let's begin
-            </Link>
-            <Link to="/parent" className="rounded-full bg-white text-foreground px-8 py-4 text-lg font-bold shadow-soft hover:scale-105 active:scale-95 transition">
-              👨‍👩‍👧 Parent dashboard
-            </Link>
+            {user ? (
+              <>
+                <Link to="/select-child" className="rounded-full bg-primary text-primary-foreground px-8 py-4 text-lg font-bold shadow-pop hover:scale-105 active:scale-95 transition">
+                  🎈 Let's begin
+                </Link>
+                <Link to="/parent" className="rounded-full bg-white text-foreground px-8 py-4 text-lg font-bold shadow-soft hover:scale-105 active:scale-95 transition">
+                  👨‍👩‍👧 Parent dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/signup" className="rounded-full bg-primary text-primary-foreground px-8 py-4 text-lg font-bold shadow-pop hover:scale-105 active:scale-95 transition">
+                  🎈 Let's begin
+                </Link>
+                <Link to="/login" className="rounded-full bg-white text-foreground px-8 py-4 text-lg font-bold shadow-soft hover:scale-105 active:scale-95 transition">
+                  Sign in
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">

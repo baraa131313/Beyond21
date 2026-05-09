@@ -12,6 +12,7 @@ export const Route = createFileRoute("/learn/")({
 const MODULES = [
   { to: "/learn/word", icon: "📖", art: "✈️", ar: "تَعَلَّم كَلْمَة", title: "Learn a Word", sub: "Say it & see it!", color: "from-mint to-happy" },
   { to: "/learn/picture", icon: "🎨", art: "🦋", ar: "وَرِّيلِي صُورَة", title: "Show Me a Picture", sub: "Speak freely!", color: "from-bubble to-peach" },
+  { to: "/learn/talk", icon: "🗣️", art: "💬", ar: "احكي معايا", title: "Free Talk", sub: "I'll understand!", color: "from-peach to-sunny" },
   { to: "/learn/exercises", icon: "🧩", art: "🎯", ar: "تَمَارِين", title: "Exercises", sub: "Let's practice!", color: "from-sky to-bubble" },
   { to: "/learn/voice", icon: "🎙️", art: "🎵", ar: "صَوْتِي", title: "My Voice", sub: "Teach me!", color: "from-sunny to-peach" },
 ] as const;

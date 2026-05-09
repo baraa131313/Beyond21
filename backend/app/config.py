@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     api_timeout: int = 30
 
+    # JWT settings
+    jwt_secret: str = os.getenv("JWT_SECRET", "beyond21-dev-secret-change-in-production")
+    jwt_expire_hours: int = 72
+
     # Feature flags
     enable_docs: bool = True  # Swagger/OpenAPI docs
 
