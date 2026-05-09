@@ -1,3 +1,3 @@
-from .lesson import Lesson
+from .lesson import LessonModel
 
-__all__ = ["Lesson"]
+__all__ = ["LessonModel"]
