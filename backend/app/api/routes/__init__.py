@@ -4,10 +4,7 @@ from .auth import router as auth_router
 from .children import router as children_router
 from .health import router as health_router
 from .lessons import router as lessons_router
-<<<<<<< HEAD
-=======
 from .medical import router as medical_router
->>>>>>> origin/main
 from .progress import router as progress_router
 
 api_router = APIRouter(prefix="/api")
