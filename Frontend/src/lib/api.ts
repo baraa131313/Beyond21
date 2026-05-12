@@ -1,8 +1,8 @@
 const STORAGE_KEY = "beyond21_api_url";
 
 export function getApiUrl(): string {
-  if (typeof window === "undefined") return "http://localhost:8000";
-  return localStorage.getItem(STORAGE_KEY) || "http://localhost:8000";
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(STORAGE_KEY) || "";
 }
 
 export function setApiUrl(url: string) {

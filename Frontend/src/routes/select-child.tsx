@@ -18,11 +18,12 @@ function SelectChild() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
-  const [age, setAge] = useState("8");
   const [cognitiveLevel, setCognitiveLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
   const [colorsInput, setColorsInput] = useState("");
   const [interestsInput, setInterestsInput] = useState("");
   const [stylePreference, setStylePreference] = useState<"cartoon" | "watercolor" | "realistic">("cartoon");
+  const [age, setAge] = useState("");
+  const [avatar, setAvatar] = useState("🧒");
   const [creating, setCreating] = useState(false);
   const { user, setChild } = useAuth();
   const navigate = useNavigate();
@@ -63,15 +64,18 @@ function SelectChild() {
         preferred_colors: colorsInput.split(",").map(s => s.trim()).filter(Boolean),
         interests: interestsInput.split(",").map(s => s.trim()).filter(Boolean),
         style_preference: stylePreference,
+        age: age ? parseInt(age) : undefined,
+        avatar,
       });
       setChildren((prev) => [...prev, child]);
       setShowCreate(false);
       setName("");
-      setAge("8");
       setCognitiveLevel("intermediate");
       setColorsInput("");
       setInterestsInput("");
       setStylePreference("cartoon");
+      setAge("");
+      setAvatar("🧒");
     } catch {
       alert("Failed to create child profile");
     } finally {
@@ -172,18 +176,18 @@ function SelectChild() {
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1.5">Prénom de l'enfant</label>
+                  <label className="block text-sm font-semibold mb-1.5">Name</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                    placeholder="ex: Ahmed"
+                    placeholder="Child's name"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Âge</label>
+                  <label className="block text-sm font-semibold mb-1.5">Age (optional)</label>
                   <input
                     type="number"
                     value={age}

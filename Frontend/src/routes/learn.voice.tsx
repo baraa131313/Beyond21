@@ -101,7 +101,7 @@ function Voice() {
         try {
           const status = await getTrainingStatus();
           setTrainProgress(status.progress);
-          if (!status.is_training && status.progress.startsWith("Done")) {
+          if (!status.is_training && (status.progress.startsWith("Done") || status.progress === "complete")) {
             if (pollRef.current) clearInterval(pollRef.current);
             setTraining(false);
             setTrainDone(true);

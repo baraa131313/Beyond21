@@ -15,6 +15,22 @@ class HealthCheckResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
+class MedicalHealthResponse(BaseModel):
+    """Health response for the medical inference service."""
+
+    status: str = Field(..., description="Service health status")
+
+
+class MedicalPrediction(BaseModel):
+    """Response payload for medical prediction."""
+
+    score: float = Field(..., description="Anomaly score")
+    label: str = Field(..., description="DS detection label")
+    anomaly_map: str = Field(..., description="Anomaly map as base64 PNG")
+    reconstruction: str = Field(..., description="Reconstruction as base64 PNG")
+    gradcam: str = Field(..., description="GradCAM visualization as base64 PNG")
+
+
 class LessonBase(BaseModel):
     """Base lesson schema."""
 
