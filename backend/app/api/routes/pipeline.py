@@ -38,7 +38,8 @@ async def process_pipeline(request: PipelineRequest):
     try:
         # Load child profile
         profile = profile_service.get_profile(request.child_id)
-        logger.info(f"Processing for child: {profile.name}")
+        logger.info("Processing for child: %s", profile.name.encode('ascii', 'replace').decode())
+
         
         # Build profile context
         profile_ctx = profile_service.build_system_prompt_context(profile)
@@ -79,11 +80,12 @@ async def process_pipeline(request: PipelineRequest):
             status="success"
         )
         
-        logger.info(f"Pipeline completed for child {profile.name}")
+        logger.info("Pipeline completed")
         return response
         
     except Exception as e:
-        logger.error(f"Pipeline error: {str(e)}")
+        logger.error("Pipeline error: %s", str(e).encode('ascii', 'replace').decode())
+
         raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
 
 
@@ -166,7 +168,8 @@ async def full_pipeline(request: PipelineRequest):
         return response
         
     except Exception as e:
-        logger.error(f"Full pipeline error: {str(e)}")
+        logger.error("Full pipeline error: %s", str(e).encode('ascii', 'replace').decode())
+
         raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
 
 
