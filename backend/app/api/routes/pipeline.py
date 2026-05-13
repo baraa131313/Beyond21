@@ -110,7 +110,7 @@ async def full_pipeline(request: PipelineRequest):
     try:
         # Load child profile
         profile = profile_service.get_profile(request.child_id)
-        logger.info("Processing pipeline for child_id: %s", child_id)
+        logger.info("Processing pipeline for child_id: %s", request.child_id)
         
         # Build profile context
         profile_ctx = profile_service.build_system_prompt_context(profile)
@@ -259,4 +259,5 @@ async def update_profile(child_id: str, updates: dict):
     except Exception as e:
         logger.error("Error updating profile")
         raise HTTPException(status_code=500, detail=f"Error updating profile: {str(e)}")
+
 
