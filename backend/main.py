@@ -1,10 +1,14 @@
 """Main FastAPI application."""
+import os
 import sys
-import io
 
-# Force UTF-8 encoding for all output (Railway fix)
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+
+if sys.stderr.encoding != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
 
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
@@ -16,11 +20,13 @@ from app.middleware import setup_middleware
 from app.services.whisper_client import whisper_client
 from dotenv import load_dotenv
 import logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    stream=sys.stdout,
-    encoding='utf-8'  # ← ajouter ça
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 load_dotenv()
 
@@ -64,7 +70,7 @@ def create_app() -> FastAPI:
     # ── Whisper health check ─────────────────────────────────────────────────
     @app.get("/api/whisper/health")
     async def whisper_health():
-        """Vérifie que le Space Whisper est actif."""
+        """Verifie que le Space Whisper est actif."""
         result = await whisper_client.health_check()
         return result
 

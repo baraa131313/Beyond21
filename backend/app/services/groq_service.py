@@ -70,7 +70,7 @@ def translate_to_english(arabic_text: str, profile_ctx: str = "") -> dict:
         raw = resp.choices[0].message.content.strip()
         french, english = _parse_translation(raw)
         
-        logger.info(f"Translation done, latency={round(time.time() - t0, 2)}s")
+        logger.info("Translation done, latency=%.2fs", time.time() - t0)
         
         return {
             "english": english,
@@ -170,7 +170,8 @@ def build_image_prompt(
         if blacklist_neg:
             neg = f"{neg}, {blacklist_neg}"
         
-        logger.info(f"Image prompt generated, latency={round(time.time() - t0, 2)}s")
+        logger.info(f"Translation done, latency={round(time.time() - t0, 2)}s")
+
 
         
         return {

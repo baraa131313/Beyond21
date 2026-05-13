@@ -39,7 +39,7 @@ function Picture() {
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [feedbackSent, setFeedbackSent] = useState(false);
 
-  // ── États feedback 3 dimensions ──────────────────────────────────────────
+  // ── etats feedback 3 dimensions ──────────────────────────────────────────
   const [quality, setQuality] = useState<number | null>(null);
   const [clarity, setClarity] = useState<number | null>(null);
   const [styleScore, setStyleScore] = useState<number | null>(null);
@@ -102,12 +102,12 @@ async function handleMic() {
       });
 
       if (!transcribeRes.ok)
-        throw new Error(`Transcription échouée : ${transcribeRes.status}`);
+        throw new Error(`Transcription echouee : ${transcribeRes.status}`);
 
       const { transcription } = await transcribeRes.json();
 
       if (!transcription?.trim())
-        throw new Error("Transcription vide — réessaie.");
+        throw new Error("Transcription vide — reessaie.");
 
       const pipelineResult = await runFullPipeline(transcription, childId);
 
@@ -190,8 +190,8 @@ async function handleMic() {
 
           {status === "listening" && (
             <motion.div key="listening" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-8">
-              <div className="text-2xl font-bold">J'écoute… 🌈</div>
-              <p className="text-muted-foreground mt-2">Appuie à nouveau pour arrêter</p>
+              <div className="text-2xl font-bold">J'ecoute… 🌈</div>
+              <p className="text-muted-foreground mt-2">Appuie a nouveau pour arrêter</p>
             </motion.div>
           )}
 
@@ -201,8 +201,8 @@ async function handleMic() {
                 <Mascot mood="thinking" size={140} />
                 <motion.div className="absolute -top-4 -right-4 text-5xl" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity }}>💡</motion.div>
               </div>
-              <p className="mt-4 text-xl font-bold">Je génère ton image… 🎨</p>
-              <p className="text-muted-foreground text-sm mt-1">Transcription → Traduction → Génération (~20s)</p>
+              <p className="mt-4 text-xl font-bold">Je genere ton image… 🎨</p>
+              <p className="text-muted-foreground text-sm mt-1">Transcription → Traduction → Generation (~20s)</p>
             </motion.div>
           )}
 
@@ -234,7 +234,7 @@ async function handleMic() {
                 <div className="mt-5 space-y-4 text-left">
 
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">😊 Tu as aimé l'image ?</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">😊 Tu as aime l'image ?</p>
                     <div className="flex gap-2">
                       <button onClick={() => setQuality(1)} className={scoreBtn(quality, 1)}>👎 Non</button>
                       <button onClick={() => setQuality(2)} className={scoreBtn(quality, 2)}>😐 Moyen</button>
@@ -283,8 +283,8 @@ async function handleMic() {
           {status === "fail" && (
             <motion.div key="fail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-[3rem] p-10 shadow-pop">
               <div className="text-7xl">🤷</div>
-              <p className="mt-4 text-xl font-bold">Oups ! {errorMsg || "Réessaie 💛"}</p>
-              <button onClick={reset} className="mt-4 rounded-full bg-sunny px-8 py-4 text-xl font-bold shadow-soft hover:scale-105 transition">🔄 Réessayer</button>
+              <p className="mt-4 text-xl font-bold">Oups ! {errorMsg || "Reessaie 💛"}</p>
+              <button onClick={reset} className="mt-4 rounded-full bg-sunny px-8 py-4 text-xl font-bold shadow-soft hover:scale-105 transition">🔄 Reessayer</button>
             </motion.div>
           )}
 

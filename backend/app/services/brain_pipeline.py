@@ -1,5 +1,5 @@
 """Brain anomaly detection pipeline for DS MRI inference.
-Architecture exactement identique à la notebook Brain__7_.ipynb
+Architecture exactement identique a la notebook Brain__7_.ipynb
 """
 
 import base64
@@ -18,7 +18,7 @@ from skimage.exposure import match_histograms
 
 
 # ─────────────────────────────────────────────
-# 1. ARCHITECTURE UNET (identique à la notebook)
+# 1. ARCHITECTURE UNET (identique a la notebook)
 # ─────────────────────────────────────────────
 
 class SinusoidalPosEmb(nn.Module):
@@ -58,7 +58,7 @@ class ResBlock(nn.Module):
 
 
 class UNet(nn.Module):
-    """UNet pour le débruitage DDPM/DDIM — identique notebook."""
+    """UNet pour le debruitage DDPM/DDIM — identique notebook."""
 
     def __init__(self, in_ch: int = 1, base: int = 32, temb_dim: int = 128):
         super().__init__()
@@ -121,7 +121,7 @@ class UNet(nn.Module):
 # ─────────────────────────────────────────────
 
 class DiffusionClassifier(nn.Module):
-    """Classifier EU=0 / DS=1 pour guider le débruitage DDIM."""
+    """Classifier EU=0 / DS=1 pour guider le debruitage DDIM."""
 
     def __init__(self, base: int = 32, temb_dim: int = 128):
         super().__init__()
@@ -168,11 +168,11 @@ class DDPM:
 
 
 # ─────────────────────────────────────────────
-# 4. GRADCAM (identique notebook — déterministe)
+# 4. GRADCAM (identique notebook — deterministe)
 # ─────────────────────────────────────────────
 
 class GradCAM_UNet:
-    """GradCAM déterministe basé sur l'anomaly map — identique notebook."""
+    """GradCAM deterministe base sur l'anomaly map — identique notebook."""
 
     def __init__(self, model: nn.Module):
         self.model = model
@@ -251,7 +251,7 @@ def ddim_guided_denoising(
     L: int = 200,
     guidance_scale: float = 3.0,
 ) -> torch.Tensor:
-    """Débruite xT → x0 avec guidance EU — identique notebook."""
+    """Debruite xT → x0 avec guidance EU — identique notebook."""
     model.eval()
     device    = xT.device
     timesteps = list(reversed(ddpm.ddim_timesteps(L)))
@@ -268,11 +268,11 @@ def ddim_guided_denoising(
         log_p = F.log_softmax(logit, dim=-1)[:, 0]
         grad  = torch.autograd.grad(log_p.sum(), xt_g)[0].detach()
 
-        # Prédiction bruit UNet
+        # Prediction bruit UNet
         with torch.no_grad():
             eps = model(xt, t_t)
 
-        # Eps guidé
+        # Eps guide
         ab_c  = ddpm.alpha_bar[t_curr]
         eps_g = eps - guidance_scale * (1 - ab_c).sqrt() * grad
 
@@ -299,7 +299,7 @@ def compute_anomaly_map(
     reconstruction_hm: torch.Tensor,
     smooth_sigma: float = 2.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Calcule l'anomaly map normalisée — identique notebook."""
+    """Calcule l'anomaly map normalisee — identique notebook."""
     orig_np = original.squeeze().cpu().numpy()
     rec_np  = reconstruction_hm.squeeze().cpu().numpy()
 
@@ -307,7 +307,7 @@ def compute_anomaly_map(
     orig_01    = (orig_np + 1) / 2
     brain_mask = get_brain_mask(orig_01)
 
-    # Différence lissée
+    # Difference lissee
     diff        = np.abs(orig_np - rec_np)
     diff_smooth = gaussian_filter(diff, sigma=smooth_sigma)
     diff_smooth = diff_smooth * brain_mask
@@ -327,7 +327,7 @@ def compute_anomaly_map(
 # ─────────────────────────────────────────────
 
 def numpy_heatmap_to_base64(array: np.ndarray, cmap_name: str = "hot") -> str:
-    """Convertit un numpy array [0,1] en PNG base64 coloré (hot/jet)."""
+    """Convertit un numpy array [0,1] en PNG base64 colore (hot/jet)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -344,7 +344,7 @@ def numpy_heatmap_to_base64(array: np.ndarray, cmap_name: str = "hot") -> str:
 
 
 def numpy_gradcam_to_base64(cam: np.ndarray, orig_np: np.ndarray, brain_mask: np.ndarray) -> str:
-    """GradCAM coloré (jet) superposé sur l'original — identique notebook."""
+    """GradCAM colore (jet) superpose sur l'original — identique notebook."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -388,16 +388,16 @@ def load_image_bytes(image_bytes: bytes, device: torch.device) -> torch.Tensor:
 
 
 # ─────────────────────────────────────────────
-# 7. DATACLASS RÉSULTAT
+# 7. DATACLASS ReSULTAT
 # ─────────────────────────────────────────────
 
 @dataclass
 class PredictionResult:
     score: float
     label: str
-    anomaly_map: str       # PNG base64 coloré (hot)
+    anomaly_map: str       # PNG base64 colore (hot)
     reconstruction: str    # PNG base64 gris
-    gradcam: str           # PNG base64 coloré (jet)
+    gradcam: str           # PNG base64 colore (jet)
 
 
 # ─────────────────────────────────────────────
@@ -405,7 +405,7 @@ class PredictionResult:
 # ─────────────────────────────────────────────
 
 class BrainPipeline:
-    """Pipeline complet identique à la notebook Brain__7_.ipynb."""
+    """Pipeline complet identique a la notebook Brain__7_.ipynb."""
 
     def __init__(self) -> None:
         self.device     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -431,7 +431,7 @@ class BrainPipeline:
             state      = torch.load(model_path, map_location=self.device)
             model.load_state_dict(state, strict=False)
             model.eval()
-            print(f"✅ {filename} chargé")
+            print(f"✅ {filename} charge")
             return model
         except Exception as e:
             print(f"❌ Erreur chargement {filename}: {e}")

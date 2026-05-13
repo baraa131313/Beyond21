@@ -41,7 +41,7 @@ class FeedbackRequest(BaseModel):
     prompt: str
     quality_score: int      # 1=non / 2=moyen / 3=oui
     clarity_score: int      # 1=complexe / 3=claire
-    style_score: int        # 1=pas adapté / 2=bien / 3=parfait
+    style_score: int        # 1=pas adapte / 2=bien / 3=parfait
     feedback_note: Optional[str] = ""
 
 class FeedbackResponse(BaseModel):

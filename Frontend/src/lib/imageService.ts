@@ -41,7 +41,7 @@ export async function runFullPipeline(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Pipeline échoué : ${res.status}`);
+    throw new Error(err.detail || `Pipeline echoue : ${res.status}`);
   }
 
   return res.json();

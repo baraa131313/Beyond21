@@ -175,7 +175,7 @@ function SelectChild() {
               <h2 className="text-xl font-bold mb-4">New learner profile</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Prénom de l'enfant</label>
+                  <label className="block text-sm font-semibold mb-1.5">Prenom de l'enfant</label>
                   <label className="block text-sm font-semibold mb-1.5">Name</label>
                   <input
                     type="text"
@@ -206,14 +206,14 @@ function SelectChild() {
                     onChange={(e) => setCognitiveLevel(e.target.value as "beginner" | "intermediate" | "advanced")}
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                   >
-                    <option value="beginner">Débutant (3–5 ans)</option>
-                    <option value="intermediate">Intermédiaire (6–9 ans)</option>
-                    <option value="advanced">Avancé (10+ ans)</option>
+                    <option value="beginner">Debutant (3–5 ans)</option>
+                    <option value="intermediate">Intermediaire (6–9 ans)</option>
+                    <option value="advanced">Avance (10+ ans)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Couleurs préférées</label>
+                  <label className="block text-sm font-semibold mb-1.5">Couleurs preferees</label>
                   <input
                     type="text"
                     value={colorsInput}
@@ -221,11 +221,11 @@ function SelectChild() {
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     placeholder="ex: bleu, jaune, vert"
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5">Séparer par des virgules</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">Separer par des virgules</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Centres d'intérêt</label>
+                  <label className="block text-sm font-semibold mb-1.5">Centres d'interêt</label>
                   <input
                     type="text"
                     value={interestsInput}
@@ -233,7 +233,7 @@ function SelectChild() {
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     placeholder="ex: animaux, sport, musique"
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5">Séparer par des virgules</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">Separer par des virgules</p>
                 </div>
 
                 <div>
@@ -270,7 +270,7 @@ function SelectChild() {
                           : "bg-white border border-border hover:bg-primary/5"
                       }`}
                     >
-                      🖼️ Réaliste
+                      🖼️ Realiste
                     </button>
                   </div>
                 </div>

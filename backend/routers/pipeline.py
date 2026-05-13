@@ -190,8 +190,8 @@ async def update_profile(child_id: str, updates: dict):
 @router.post("/generate-image", response_model=ImageGenerationResponse)
 async def generate_image_endpoint(req: ImageGenerationRequest):
     """
-    Génère une image depuis un prompt enrichi (produit par /pipeline/process).
-    Appelle Pollinations.ai (FLUX.1) — gratuit, sans clé API.
+    Genere une image depuis un prompt enrichi (produit par /pipeline/process).
+    Appelle Pollinations.ai (FLUX.1) — gratuit, sans cle API.
     """
     try:
         result = await generate_image(
@@ -247,7 +247,7 @@ async def full_pipeline(request: PipelineRequest):
             blacklist_neg
         )
  
-        # 4. Génération image (Pollinations) — déjà async
+        # 4. Generation image (Pollinations) — deja async
         image_result = await generate_image(
             prompt=prompt_result["prompt"],
             negative_prompt=prompt_result["negative_prompt"],

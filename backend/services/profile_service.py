@@ -173,35 +173,35 @@ class ProfileService:
                                      quality_score: int, clarity_score: int, 
                                      style_score: int) -> bool:
         """
-        Met à jour le profil selon les 3 scores de feedback visuel.
+        Met a jour le profil selon les 3 scores de feedback visuel.
         quality_score : 1=non / 2=moyen / 3=oui
-        clarity_score : 1=incompréhensible / 2=complexe / 3=claire
-        style_score   : 1=pas adapté / 2=bien / 3=parfait
+        clarity_score : 1=incomprehensible / 2=complexe / 3=claire
+        style_score   : 1=pas adapte / 2=bien / 3=parfait
         """
         try:
             profile = self.get_profile(child_id)
 
-            # ── Qualité générale ──────────────────────────────────────
+            # ── Qualite generale ──────────────────────────────────────
             if quality_score == 3:
                 kw = translation.strip().split()[0].lower() if translation.strip() else ""
                 if kw and kw not in profile.positive_keywords:
                     profile.positive_keywords.append(kw)
-                    logger.info(f"✅ Keyword boosté : '{kw}'")
+                    logger.info(f"✅ Keyword booste : '{kw}'")
             elif quality_score == 1:
-                logger.info(f"👎 Qualité négative pour {child_id}")
+                logger.info(f"👎 Qualite negative pour {child_id}")
 
-            # ── Clarté / compréhension ────────────────────────────────
+            # ── Clarte / comprehension ────────────────────────────────
             if clarity_score == 1:
                 profile.style_preference = "cartoon"
-                logger.info(f"🔄 Style simplifié → cartoon pour {child_id}")
+                logger.info(f"🔄 Style simplifie → cartoon pour {child_id}")
             elif clarity_score == 3:
                 logger.info(f"✅ Image claire pour {child_id}")
 
             # ── Style visuel / couleurs ───────────────────────────────
             if style_score == 3:
-                logger.info(f"❤️ Style visuel validé pour {child_id}")
+                logger.info(f"❤️ Style visuel valide pour {child_id}")
             elif style_score == 1:
-                logger.info(f"😕 Style pas adapté pour {child_id}")
+                logger.info(f"😕 Style pas adapte pour {child_id}")
 
             return self.save_profile(profile)
 

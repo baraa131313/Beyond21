@@ -38,9 +38,9 @@ class FeedbackRequest(BaseModel):
     translation: str
     prompt: str
     # Remplacement du feedback global par 3 scores
-    quality_score: int    # 1=non / 2=moyen / 3=oui      → "Tu as aimé ?"
-    clarity_score: int    # 1=incompréhensible / 2=complexe / 3=claire → "Tu comprends ?"
-    style_score: int      # 1=pas adapté / 2=bien / 3=parfait  → "C'est beau ?"
+    quality_score: int    # 1=non / 2=moyen / 3=oui      → "Tu as aime ?"
+    clarity_score: int    # 1=incomprehensible / 2=complexe / 3=claire → "Tu comprends ?"
+    style_score: int      # 1=pas adapte / 2=bien / 3=parfait  → "C'est beau ?"
     feedback_note: str = ""
 
 
@@ -51,7 +51,7 @@ class FeedbackResponse(BaseModel):
     message: Optional[str] = None
 
 class ImageGenerationRequest(BaseModel):
-    """Reçu depuis le frontend pour générer une image."""
+    """Reçu depuis le frontend pour generer une image."""
     prompt: str                        # prompt enrichi produit par Groq
     negative_prompt: str = ""          # blacklist profil
     child_id: str = "child_001"
@@ -60,10 +60,10 @@ class ImageGenerationRequest(BaseModel):
     seed: Optional[int] = None
  
 class ImageGenerationResponse(BaseModel):
-    """Retourné au frontend."""
-    image_b64: str                     # image PNG encodée base64
+    """Retourne au frontend."""
+    image_b64: str                     # image PNG encodee base64
     image_url: str                     # URL Pollinations (debug)
-    prompt_used: str                   # prompt complet envoyé
+    prompt_used: str                   # prompt complet envoye
     latency: float
     cached: bool
     status: str = "success"
@@ -74,7 +74,7 @@ class FullPipelineRequest(BaseModel):
     child_id: str = "child_001"
  
 class FullPipelineResponse(BaseModel):
-    """Réponse pipeline complet."""
+    """Reponse pipeline complet."""
     transcription: str
     french: str
     english: str

@@ -1,8 +1,8 @@
 """
 whisper_client.py
 ──────────────────
-À placer dans ton backend FastAPI (ex: backend/services/whisper_client.py).
-Gère la communication avec le Space HuggingFace Whisper.
+a placer dans ton backend FastAPI (ex: backend/services/whisper_client.py).
+Gere la communication avec le Space HuggingFace Whisper.
 """
 
 import os
@@ -14,16 +14,16 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# URL du Space HuggingFace (à définir dans .env)
+# URL du Space HuggingFace (a definir dans .env)
 WHISPER_SPACE_URL = os.getenv(
     "WHISPER_SPACE_URL",
     "https://manarElhouda-whisper-tunisian-asr.hf.space"
 )
 
-# Timeout généreux (CPU cold start + transcription)
+# Timeout genereux (CPU cold start + transcription)
 TIMEOUT_SECONDS = 120.0
 
-# Nombre de retries sur cold start (le Space peut prendre ~30s à se réveiller)
+# Nombre de retries sur cold start (le Space peut prendre ~30s a se reveiller)
 MAX_RETRIES = 3
 RETRY_DELAY = 10.0
 
@@ -31,7 +31,7 @@ RETRY_DELAY = 10.0
 class WhisperClient:
     """
     Client HTTP asynchrone vers l'API Whisper du Space HuggingFace.
-    Gère le cold start, les retries, et le format de réponse.
+    Gere le cold start, les retries, et le format de reponse.
     """
 
     def __init__(self, base_url: str = WHISPER_SPACE_URL):
@@ -48,14 +48,14 @@ class WhisperClient:
 
         Args:
             audio_bytes  : contenu brut du fichier audio
-            filename     : nom du fichier (aide à détecter le format)
+            filename     : nom du fichier (aide a detecter le format)
             content_type : MIME type
 
         Returns:
             str : texte transcrit en arabe
 
         Raises:
-            RuntimeError : si la transcription échoue après tous les retries
+            RuntimeError : si la transcription echoue apres tous les retries
         """
         for attempt in range(1, MAX_RETRIES + 1):
             try:
@@ -76,9 +76,9 @@ class WhisperClient:
                     return data["text"]
 
                 elif response.status_code == 503:
-                    # Space en cours de démarrage (cold start)
+                    # Space en cours de demarrage (cold start)
                     logger.warning(
-                        f"Space en démarrage (attempt {attempt}/{MAX_RETRIES}), "
+                        f"Space en demarrage (attempt {attempt}/{MAX_RETRIES}), "
                         f"retry dans {RETRY_DELAY}s..."
                     )
                     if attempt < MAX_RETRIES:
@@ -96,21 +96,21 @@ class WhisperClient:
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAY)
                 else:
-                    raise RuntimeError("Timeout — le Space Whisper ne répond pas.")
+                    raise RuntimeError("Timeout — le Space Whisper ne repond pas.")
 
             except httpx.ConnectError as e:
                 raise RuntimeError(f"Impossible de joindre le Space Whisper : {e}")
 
-        raise RuntimeError("Transcription échouée après tous les retries.")
+        raise RuntimeError("Transcription echouee apres tous les retries.")
 
     async def health_check(self) -> dict:
-        """Vérifie que le Space est actif."""
+        """Verifie que le Space est actif."""
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(f"{self.base_url}/health")
             return response.json()
 
     async def ping(self) -> bool:
-        """Ping léger pour maintenir le Space éveillé (évite le cold start)."""
+        """Ping leger pour maintenir le Space eveille (evite le cold start)."""
         try:
             result = await self.health_check()
             return result.get("status") == "ok"
@@ -118,11 +118,11 @@ class WhisperClient:
             return False
 
 
-# Instance singleton à injecter dans FastAPI
+# Instance singleton a injecter dans FastAPI
 whisper_client = WhisperClient()
 
 
-# ── Intégration dans ton router FastAPI ───────────────────────────────────────
+# ── Integration dans ton router FastAPI ───────────────────────────────────────
 # Exemple d'utilisation dans ton main.py ou router :
 #
 # from fastapi import APIRouter, UploadFile, File
