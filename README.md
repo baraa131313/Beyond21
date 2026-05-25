@@ -125,14 +125,6 @@ Larger datasets
 Improved personalization
 Clinical validation
 
-## Live Demo
-
-Our platform is available online and accessible through Railway:
-
-[Visit our website](https://frontend-production-ce37.up.railway.app/)
-
----
-
 ## Run Locally
 
 ### Prerequisites
