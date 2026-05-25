@@ -9,6 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SpecialistSignupRouteImport } from './routes/specialist-signup'
+import { Route as SpecialistLoginRouteImport } from './routes/specialist-login'
+import { Route as SpecialistRouteImport } from './routes/specialist'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectChildRouteImport } from './routes/select-child'
 import { Route as ParentRouteImport } from './routes/parent'
@@ -22,6 +25,21 @@ import { Route as LearnTalkRouteImport } from './routes/learn.talk'
 import { Route as LearnPictureRouteImport } from './routes/learn.picture'
 import { Route as LearnExercisesRouteImport } from './routes/learn.exercises'
 
+const SpecialistSignupRoute = SpecialistSignupRouteImport.update({
+  id: '/specialist-signup',
+  path: '/specialist-signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpecialistLoginRoute = SpecialistLoginRouteImport.update({
+  id: '/specialist-login',
+  path: '/specialist-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpecialistRoute = SpecialistRouteImport.update({
+  id: '/specialist',
+  path: '/specialist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -90,6 +108,9 @@ export interface FileRoutesByFullPath {
   '/parent': typeof ParentRoute
   '/select-child': typeof SelectChildRoute
   '/signup': typeof SignupRoute
+  '/specialist': typeof SpecialistRoute
+  '/specialist-login': typeof SpecialistLoginRoute
+  '/specialist-signup': typeof SpecialistSignupRoute
   '/learn/exercises': typeof LearnExercisesRoute
   '/learn/picture': typeof LearnPictureRoute
   '/learn/talk': typeof LearnTalkRoute
@@ -103,6 +124,9 @@ export interface FileRoutesByTo {
   '/parent': typeof ParentRoute
   '/select-child': typeof SelectChildRoute
   '/signup': typeof SignupRoute
+  '/specialist': typeof SpecialistRoute
+  '/specialist-login': typeof SpecialistLoginRoute
+  '/specialist-signup': typeof SpecialistSignupRoute
   '/learn/exercises': typeof LearnExercisesRoute
   '/learn/picture': typeof LearnPictureRoute
   '/learn/talk': typeof LearnTalkRoute
@@ -118,6 +142,9 @@ export interface FileRoutesById {
   '/parent': typeof ParentRoute
   '/select-child': typeof SelectChildRoute
   '/signup': typeof SignupRoute
+  '/specialist': typeof SpecialistRoute
+  '/specialist-login': typeof SpecialistLoginRoute
+  '/specialist-signup': typeof SpecialistSignupRoute
   '/learn/exercises': typeof LearnExercisesRoute
   '/learn/picture': typeof LearnPictureRoute
   '/learn/talk': typeof LearnTalkRoute
@@ -134,6 +161,9 @@ export interface FileRouteTypes {
     | '/parent'
     | '/select-child'
     | '/signup'
+    | '/specialist'
+    | '/specialist-login'
+    | '/specialist-signup'
     | '/learn/exercises'
     | '/learn/picture'
     | '/learn/talk'
@@ -147,6 +177,9 @@ export interface FileRouteTypes {
     | '/parent'
     | '/select-child'
     | '/signup'
+    | '/specialist'
+    | '/specialist-login'
+    | '/specialist-signup'
     | '/learn/exercises'
     | '/learn/picture'
     | '/learn/talk'
@@ -161,6 +194,9 @@ export interface FileRouteTypes {
     | '/parent'
     | '/select-child'
     | '/signup'
+    | '/specialist'
+    | '/specialist-login'
+    | '/specialist-signup'
     | '/learn/exercises'
     | '/learn/picture'
     | '/learn/talk'
@@ -176,10 +212,34 @@ export interface RootRouteChildren {
   ParentRoute: typeof ParentRoute
   SelectChildRoute: typeof SelectChildRoute
   SignupRoute: typeof SignupRoute
+  SpecialistRoute: typeof SpecialistRoute
+  SpecialistLoginRoute: typeof SpecialistLoginRoute
+  SpecialistSignupRoute: typeof SpecialistSignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/specialist-signup': {
+      id: '/specialist-signup'
+      path: '/specialist-signup'
+      fullPath: '/specialist-signup'
+      preLoaderRoute: typeof SpecialistSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/specialist-login': {
+      id: '/specialist-login'
+      path: '/specialist-login'
+      fullPath: '/specialist-login'
+      preLoaderRoute: typeof SpecialistLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/specialist': {
+      id: '/specialist'
+      path: '/specialist'
+      fullPath: '/specialist'
+      preLoaderRoute: typeof SpecialistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -294,6 +354,9 @@ const rootRouteChildren: RootRouteChildren = {
   ParentRoute: ParentRoute,
   SelectChildRoute: SelectChildRoute,
   SignupRoute: SignupRoute,
+  SpecialistRoute: SpecialistRoute,
+  SpecialistLoginRoute: SpecialistLoginRoute,
+  SpecialistSignupRoute: SpecialistSignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

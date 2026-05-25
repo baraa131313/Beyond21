@@ -33,3 +33,13 @@ def get_db() -> Session:
 def create_all_tables() -> None:
     """Create all tables in the database."""
     Base.metadata.create_all(bind=engine)
+
+
+def fix_specialist_roles() -> None:
+    """Fix old accounts that have a specialty but role='parent'."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(
+            text("UPDATE users SET role='specialist' WHERE specialty IS NOT NULL AND specialty != '' AND role='parent'")
+        )
+        conn.commit()

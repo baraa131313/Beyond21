@@ -4,14 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { Beyond21Logo } from "@/components/Beyond21Logo";
 import { Mascot } from "@/components/Mascot";
-import { fetchChildren, createChild, setActiveChild, logout, useAuth, type Child } from "@/lib/auth";
+import { fetchChildren, createChild, setActiveChild, logout, useAuth, deleteChild, type Child } from "@/lib/auth";
 
 export const Route = createFileRoute("/select-child")({
   head: () => ({ meta: [{ title: "Choose Learner — Beyond 21" }] }),
   component: SelectChild,
 });
 
-const AVATARS = ["🧒", "👧", "👦", "🧒🏽", "👧🏾", "👦🏻", "🐻", "🦊", "🐰", "🐱", "🦁", "🐼"];
+const AVATARS = [
+  "🧒", "👧", "👦", "🧒🏽", "👧🏾", "👦🏻", "👶", "👶🏽",
+  "🐻", "🦊", "🐰", "🐱", "🦁", "🐼", "🐶", "🐸",
+  "🦋", "🌟", "🌈", "🎈", "🚀", "🦄", "🐬", "🐢",
+  "🌻", "⭐", "🎨", "🎵", "🍎", "🧸", "🐝", "🦜",
+];
 
 function SelectChild() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -25,12 +30,16 @@ function SelectChild() {
   const [age, setAge] = useState("");
   const [avatar, setAvatar] = useState("🧒");
   const [creating, setCreating] = useState(false);
-  const { user, setChild } = useAuth();
+  const { user, setUser, setChild } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) {
       navigate({ to: "/login" });
+      return;
+    }
+    if (user.role === "specialist") {
+      navigate({ to: "/specialist" });
       return;
     }
     loadChildren();
@@ -59,11 +68,6 @@ function SelectChild() {
     try {
       const child = await createChild({
         name,
-        age: parseInt(age),
-        cognitive_level: cognitiveLevel,
-        preferred_colors: colorsInput.split(",").map(s => s.trim()).filter(Boolean),
-        interests: interestsInput.split(",").map(s => s.trim()).filter(Boolean),
-        style_preference: stylePreference,
         age: age ? parseInt(age) : undefined,
         avatar,
       });
@@ -106,7 +110,8 @@ function SelectChild() {
         <button
           onClick={() => {
             logout();
-            navigate({ to: "/login" });
+            setUser(null);
+            navigate({ to: "/" });
           }}
           className="rounded-full bg-white/80 backdrop-blur px-4 py-2 text-sm font-semibold shadow-soft hover:scale-105 transition"
         >
@@ -175,8 +180,7 @@ function SelectChild() {
               <h2 className="text-xl font-bold mb-4">New learner profile</h2>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Prenom de l'enfant</label>
-                  <label className="block text-sm font-semibold mb-1.5">Name</label>
+                  <label className="block text-sm font-semibold mb-1.5">Child's name</label>
                   <input
                     type="text"
                     value={name}
@@ -200,44 +204,44 @@ function SelectChild() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Niveau cognitif</label>
+                  <label className="block text-sm font-semibold mb-1.5">Cognitive level</label>
                   <select
                     value={cognitiveLevel}
                     onChange={(e) => setCognitiveLevel(e.target.value as "beginner" | "intermediate" | "advanced")}
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                   >
-                    <option value="beginner">Debutant (3–5 ans)</option>
-                    <option value="intermediate">Intermediaire (6–9 ans)</option>
-                    <option value="advanced">Avance (10+ ans)</option>
+                    <option value="beginner">Mild</option>
+                    <option value="intermediate">Moderate</option>
+                    <option value="advanced">Severe</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Couleurs preferees</label>
+                  <label className="block text-sm font-semibold mb-1.5">Favorite colors</label>
                   <input
                     type="text"
                     value={colorsInput}
                     onChange={(e) => setColorsInput(e.target.value)}
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                    placeholder="ex: bleu, jaune, vert"
+                    placeholder="e.g. blue, yellow, green"
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5">Separer par des virgules</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">Separate with commas</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5">Centres d'interêt</label>
+                  <label className="block text-sm font-semibold mb-1.5">Interests</label>
                   <input
                     type="text"
                     value={interestsInput}
                     onChange={(e) => setInterestsInput(e.target.value)}
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
-                    placeholder="ex: animaux, sport, musique"
+                    placeholder="e.g. animals, sports, music"
                   />
-                  <p className="text-xs text-muted-foreground mt-1.5">Separer par des virgules</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">Separate with commas</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Style visuel</label>
+                  <label className="block text-sm font-semibold mb-2">Visual style</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -259,7 +263,7 @@ function SelectChild() {
                           : "bg-white border border-border hover:bg-primary/5"
                       }`}
                     >
-                      🖌️ Aquarelle
+                      🖌️ Watercolor
                     </button>
                     <button
                       type="button"
@@ -270,7 +274,7 @@ function SelectChild() {
                           : "bg-white border border-border hover:bg-primary/5"
                       }`}
                     >
-                      🖼️ Realiste
+                      🖼️ Realistic
                     </button>
                   </div>
                 </div>

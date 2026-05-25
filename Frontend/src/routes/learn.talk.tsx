@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { AudioRecorder } from "@/lib/recorder";
-import { getApiUrl, transcribe } from "@/lib/api";
+import { getAsrUrl, transcribe } from "@/lib/api";
 
 export const Route = createFileRoute("/learn/talk")({
   head: () => ({ meta: [{ title: "Free Talk — Beyond 21" }] }),
@@ -36,7 +36,7 @@ function FreeTalk() {
   const recorderRef = useRef(new AudioRecorder());
 
   async function handleMic() {
-    if (!getApiUrl()) {
+    if (!getAsrUrl()) {
       alert("Please set the API URL first.\nGo to the Parent Dashboard → Settings tab.");
       return;
     }
@@ -118,11 +118,6 @@ function FreeTalk() {
                   >
                     <p className="text-sm text-muted-foreground mb-2">I heard you say:</p>
                     <p className="font-arabic text-5xl font-black" dir="rtl">{result.recognized}</p>
-                    {result.whisper_raw !== result.recognized && (
-                      <p className="text-sm text-muted-foreground mt-3" dir="rtl">
-                        (raw: {result.whisper_raw})
-                      </p>
-                    )}
                   </motion.div>
                 </div>
               )}

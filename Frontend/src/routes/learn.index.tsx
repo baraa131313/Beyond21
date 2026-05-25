@@ -29,10 +29,9 @@ function LearnHome() {
             🏠
           </Link>
         </div>
-        <div className="flex items-center gap-3 bg-white/80 rounded-full px-4 py-2 shadow-soft">
-          <span className="text-2xl">⭐</span>
-          <span className="font-bold text-lg">12</span>
-        </div>
+        <Link to="/parent" className="rounded-full bg-white/80 backdrop-blur w-12 h-12 grid place-items-center text-xl shadow-soft hover:scale-110 active:scale-95 transition" aria-label="Parent dashboard">
+          👨‍👩‍👧
+        </Link>
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto px-6 mt-4 text-center">

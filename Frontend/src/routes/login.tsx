@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { Beyond21Logo } from "@/components/Beyond21Logo";
 import { Mascot } from "@/components/Mascot";
-import { apiLogin, useAuth } from "@/lib/auth";
+import { apiLogin, persistLogin, logout, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — Beyond 21" }] }),
@@ -24,8 +24,14 @@ function Login() {
     setError("");
     setLoading(true);
     try {
-      const { user } = await apiLogin(email, password);
-      setUser(user);
+      const data = await apiLogin(email, password);
+      if (data.user.role === "specialist") {
+        logout();
+        setError("This is a specialist account. Please use the specialist sign in.");
+        return;
+      }
+      persistLogin(data);
+      setUser(data.user);
       navigate({ to: "/select-child" });
     } catch (err: any) {
       setError(err.message || "Login failed");

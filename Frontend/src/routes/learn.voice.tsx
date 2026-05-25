@@ -2,11 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { WORDS } from "@/data/words";
+import { WORDS, loadAllWords, type Word } from "@/data/words";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { AudioRecorder } from "@/lib/recorder";
-import { getApiUrl, playReferenceAudio, startTraining, getTrainingStatus } from "@/lib/api";
+import { getAsrUrl, playReferenceAudio, startTraining, getTrainingStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/learn/voice")({
   head: () => ({ meta: [{ title: "My Voice — Beyond 21" }] }),
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/learn/voice")({
 const TARGET = 20;
 
 async function enrollAudio(audioBlob: Blob, word: string, speakerId: string) {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   if (!base) return;
   const form = new FormData();
   form.append("audio", audioBlob, "recording.wav");
@@ -30,7 +30,7 @@ async function enrollAudio(audioBlob: Blob, word: string, speakerId: string) {
 }
 
 function playReference(word: string) {
-  if (getApiUrl()) {
+  if (getAsrUrl()) {
     playReferenceAudio(word).catch(() => {
       if ("speechSynthesis" in window) {
         const u = new SpeechSynthesisUtterance(word);
@@ -46,8 +46,13 @@ function playReference(word: string) {
 }
 
 function Voice() {
-  const items = WORDS.concat(WORDS).slice(0, TARGET);
+  const [allWords, setAllWords] = useState<Word[]>(WORDS);
+  const items = allWords.concat(allWords).slice(0, TARGET);
   const [recorded, setRecorded] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    loadAllWords().then(setAllWords);
+  }, []);
   const [recordingId, setRecordingId] = useState<string | null>(null);
   const [training, setTraining] = useState(false);
   const [trainProgress, setTrainProgress] = useState("");
@@ -56,7 +61,7 @@ function Voice() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function startRec(uid: string, word: string) {
-    if (!getApiUrl()) {
+    if (!getAsrUrl()) {
       alert("Please set the API URL first.\nGo to the Parent Dashboard → Settings tab.");
       return;
     }

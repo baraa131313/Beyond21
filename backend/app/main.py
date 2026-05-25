@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 
 from app.api.routes import api_router
 from app.config import settings
+from app.database.connection import create_all_tables, fix_specialist_roles
+import app.models  # noqa: F401 — register all models with Base
 
 
 def create_app() -> FastAPI:
@@ -26,6 +28,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    create_all_tables()
+    fix_specialist_roles()
     app.include_router(api_router)
 
     @app.get("/")

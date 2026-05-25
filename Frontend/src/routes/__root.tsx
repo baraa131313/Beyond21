@@ -48,8 +48,19 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const [user, setUser] = useState<User | null>(() => getStoredUser());
-  const [child, setChild] = useState<Child | null>(() => getActiveChild());
+  const [user, setUserState] = useState<User | null>(() => getStoredUser());
+  const [child, setChildState] = useState<Child | null>(() => getActiveChild());
+
+  function setUser(u: User | null) {
+    setUserState(u);
+    if (!u) {
+      setChildState(null);
+    }
+  }
+
+  function setChild(c: Child | null) {
+    setChildState(c);
+  }
 
   return (
     <AuthContext.Provider value={{ user, child, setUser, setChild }}>

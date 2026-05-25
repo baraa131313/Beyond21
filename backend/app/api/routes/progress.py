@@ -12,16 +12,18 @@ from app.schemas import ChildProgressSummary, ProgressCreate, ProgressOut
 router = APIRouter()
 
 
-def _verify_child_ownership(child_id: int, user: UserModel, db: Session) -> ChildModel:
-    child = db.query(ChildModel).filter(ChildModel.id == child_id, ChildModel.parent_id == user.id).first()
+def _verify_child_access(child_id: int, user: UserModel, db: Session) -> ChildModel:
+    child = db.query(ChildModel).filter(ChildModel.id == child_id).first()
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
+    if user.role == "parent" and child.parent_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     return child
 
 
 @router.post("", response_model=ProgressOut)
 def record_progress(data: ProgressCreate, user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    _verify_child_ownership(data.child_id, user, db)
+    _verify_child_access(data.child_id, user, db)
     entry = ProgressModel(**data.model_dump())
     db.add(entry)
     db.commit()
@@ -31,7 +33,7 @@ def record_progress(data: ProgressCreate, user: UserModel = Depends(get_current_
 
 @router.get("/{child_id}", response_model=ChildProgressSummary)
 def get_progress(child_id: int, user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    _verify_child_ownership(child_id, user, db)
+    _verify_child_access(child_id, user, db)
 
     entries = db.query(ProgressModel).filter(ProgressModel.child_id == child_id).order_by(ProgressModel.created_at.desc()).all()
 

@@ -59,7 +59,7 @@ export function MedicalInsights() {
           <div>
             <h1 className="text-3xl font-bold">Medical Insights</h1>
             <p className="text-muted-foreground mt-1 max-w-2xl">
-              Upload an MRI image to run the DS anomaly detection pipeline and compare anomaly and GradCAM maps.
+              Upload a brain MRI scan to detect Down Syndrome markers. Our AI analyzes structural patterns and highlights areas of interest.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -148,9 +148,15 @@ export function MedicalInsights() {
             ))}
           </div>
         </div>
+      ) : loading ? (
+        <div className="rounded-3xl bg-white p-10 shadow-soft text-center">
+          <div className="text-6xl inline-block animate-bounce">🧠</div>
+          <p className="text-lg font-bold mt-4">Analyzing brain scan...</p>
+          <p className="text-sm text-muted-foreground mt-2">Please wait while we process the image</p>
+        </div>
       ) : (
         <div className="rounded-3xl bg-white p-6 shadow-soft">
-          <p className="text-sm text-muted-foreground">Upload an MRI image and click Analyze to generate a DS anomaly score, anomaly map, and GradCAM result.</p>
+          <p className="text-sm text-muted-foreground">Upload a brain MRI scan above and click Analyze. The AI will process the image and show results here.</p>
         </div>
       )}
     </div>

@@ -10,15 +10,9 @@ if sys.stdout.encoding != "utf-8":
 if sys.stderr.encoding != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8")
 
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse
-from app.api.routes import api_router
-from app.api.routes.pipeline import router as pipeline_router
-from app.config import settings
-from app.database.connection import create_all_tables
-from app.middleware import setup_middleware
-from app.services.whisper_client import whisper_client
 from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 
 logging.basicConfig(
@@ -28,7 +22,15 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
-load_dotenv()
+
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+from app.api.routes import api_router
+from app.api.routes.pipeline import router as pipeline_router
+from app.config import settings
+from app.database.connection import create_all_tables
+from app.middleware import setup_middleware
+from app.services.whisper_client import whisper_client
 
 logger = logging.getLogger(__name__)
 
@@ -106,3 +108,7 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

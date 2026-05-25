@@ -1,43 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
-import { WORDS, type Word } from "@/data/words";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
-import { adaptive } from "@/lib/adaptive";
+import QuizSession from "@/components/QuizSession";
 
 export const Route = createFileRoute("/learn/exercises")({
   head: () => ({ meta: [{ title: "Exercises — Beyond 21" }] }),
   component: Exercises,
 });
 
-type ExType = "which" | "what" | "match" | "repeat";
-const TYPES: { k: ExType; i: string; t: string; d: string }[] = [
-  { k: "which", i: "🖼️", t: "Which picture?", d: "Listen and tap the picture." },
-  { k: "what", i: "🗣️", t: "What is this?", d: "Look and say the word." },
-  { k: "match", i: "🃏", t: "Match the pairs", d: "Find the matching cards." },
-  { k: "repeat", i: "🎵", t: "Listen and repeat", d: "Hear it, then say it." },
-];
-
-function speak(t: string) {
-  if ("speechSynthesis" in window) {
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = "ar-TN";
-    window.speechSynthesis.speak(u);
-  }
-}
-
-function shuffle<T>(arr: T[]): T[] { return [...arr].sort(() => Math.random() - 0.5); }
-
 function Exercises() {
-  const [picked, setPicked] = useState<ExType | null>(null);
-
   return (
     <main className="min-h-screen relative overflow-hidden">
       <FloatingBackground />
 
-      <div className="relative z-10 flex items-center justify-between px-6 py-4">
+      <div className="relative z-10 flex items-center justify-between px-6 py-2">
         <Link to="/learn" className="rounded-full bg-white/80 backdrop-blur w-14 h-14 grid place-items-center text-2xl shadow-soft hover:scale-110 transition" aria-label="Back">⬅️</Link>
         <div className="bg-white/80 backdrop-blur rounded-full px-5 py-2 shadow-soft font-bold flex items-center gap-2">
           <span className="text-2xl">🧩</span><span>Exercises</span>
@@ -45,181 +21,9 @@ function Exercises() {
         <Link to="/" className="rounded-full bg-white/80 backdrop-blur w-14 h-14 grid place-items-center text-2xl shadow-soft hover:scale-110 transition" aria-label="Home">🏠</Link>
       </div>
 
-      <section className="relative z-10 max-w-3xl mx-auto px-6 mt-4 pb-16">
-        {!picked && (
-          <>
-            <h1 className="text-3xl font-bold text-center mb-6">Pick an activity 🧩</h1>
-            <div className="grid grid-cols-2 gap-4">
-              {TYPES.map((t) => (
-                <button
-                  key={t.k}
-                  onClick={() => setPicked(t.k)}
-                  className="rounded-3xl bg-white p-6 shadow-soft hover:shadow-pop hover:-translate-y-1 transition text-left"
-                >
-                  <div className="text-5xl mb-2">{t.i}</div>
-                  <div className="font-bold text-lg">{t.t}</div>
-                  <div className="text-sm text-muted-foreground font-pro">{t.d}</div>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {picked && (
-          <div>
-            <button onClick={() => setPicked(null)} className="mb-4 rounded-full bg-white px-4 py-2 text-sm shadow-soft font-semibold">⬅️ Other activity</button>
-            {picked === "which" && <WhichPicture />}
-            {picked === "what" && <WhatIsThis />}
-            {picked === "match" && <MatchPairs />}
-            {picked === "repeat" && <ListenRepeat />}
-          </div>
-        )}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 mt-2 pb-8">
+        <QuizSession onFinish={() => window.history.back()} />
       </section>
-
-      <div className="fixed bottom-6 left-6 z-20"><Mascot size={100} /></div>
     </main>
-  );
-}
-
-/* Which picture? */
-function WhichPicture() {
-  const [target, setTarget] = useState<Word>(() => WORDS[Math.floor(Math.random() * WORDS.length)]);
-  const options = useMemo(() => {
-    const others = shuffle(WORDS.filter((w) => w.id !== target.id)).slice(0, 3);
-    return shuffle([target, ...others]);
-  }, [target]);
-  const [picked, setPicked] = useState<string | null>(null);
-  const [stars, setStars] = useState(0);
-  const startRef = useRef<number>(Date.now());
-  const streakRef = useRef(0);
-  useEffect(() => { startRef.current = Date.now(); }, [target]);
-
-  function pick(w: Word) {
-    setPicked(w.id);
-    const dt = Date.now() - startRef.current;
-    if (w.id === target.id) {
-      confetti({ particleCount: 60, spread: 70 });
-      setStars((s) => s + 1);
-      adaptive.recordCorrect(dt);
-      streakRef.current += 1;
-      if (streakRef.current >= 3) { adaptive.recordStreak(streakRef.current); }
-      setTimeout(() => {
-        setPicked(null);
-        setTarget(WORDS[Math.floor(Math.random() * WORDS.length)]);
-      }, 1500);
-    } else {
-      adaptive.recordWrong(dt);
-      streakRef.current = 0;
-    }
-  }
-
-  return (
-    <div className="text-center">
-      <div className="flex items-center justify-center gap-2 mb-4">
-        {[1, 2, 3].map((s) => <span key={s} className={`text-3xl ${s <= stars ? "" : "grayscale opacity-30"}`}>⭐</span>)}
-      </div>
-      <button onClick={() => speak(target.ar)} className="mx-auto rounded-full bg-gradient-celebrate text-white px-8 py-5 text-2xl shadow-pop animate-breathe">🔊 Listen</button>
-      <div className="grid grid-cols-2 gap-4 mt-8">
-        {options.map((w) => {
-          const isCorrect = picked && w.id === target.id;
-          const isWrong = picked === w.id && w.id !== target.id;
-          return (
-            <button
-              key={w.id}
-              onClick={() => pick(w)}
-              disabled={!!picked && picked === target.id}
-              className={`aspect-square rounded-3xl shadow-soft hover:scale-105 transition text-7xl grid place-items-center ${isCorrect ? "bg-happy ring-4 ring-happy" : isWrong ? "bg-white opacity-50" : "bg-white"}`}
-            >
-              {w.emoji}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* What is this? */
-function WhatIsThis() {
-  const [w, setW] = useState<Word>(WORDS[0]);
-  const [status, setStatus] = useState<"idle" | "ok">("idle");
-  function go() {
-    setStatus("ok");
-    confetti({ particleCount: 50, spread: 70 });
-    setTimeout(() => {
-      setStatus("idle");
-      setW(WORDS[Math.floor(Math.random() * WORDS.length)]);
-    }, 1800);
-  }
-  return (
-    <div className="text-center" dir="rtl">
-      <div className="rounded-[2.5rem] bg-white shadow-pop p-10">
-        <div className="text-[10rem]">{w.emoji}</div>
-        <p className="mt-4 text-foreground/70 font-bold" dir="ltr">Say it! 🎤</p>
-      </div>
-      <button onClick={go} className="mt-6 w-28 h-28 rounded-full bg-gradient-celebrate text-white text-4xl shadow-pop animate-breathe">🎤</button>
-      {status === "ok" && <div className="mt-4 text-2xl font-bold text-primary">⭐⭐⭐ Great job!</div>}
-    </div>
-  );
-}
-
-/* Match the pairs */
-function MatchPairs() {
-  const pool = useMemo(() => shuffle(WORDS).slice(0, 4), []);
-  const cards = useMemo(() => shuffle(pool.flatMap((w) => [
-    { uid: `${w.id}-e`, id: w.id, kind: "emoji" as const, content: w.emoji },
-    { uid: `${w.id}-w`, id: w.id, kind: "word" as const, content: w.ar },
-  ])), [pool]);
-  const [flipped, setFlipped] = useState<string[]>([]);
-  const [matched, setMatched] = useState<string[]>([]);
-
-  function flip(uid: string, id: string) {
-    if (flipped.length === 2 || flipped.includes(uid) || matched.includes(id)) return;
-    const next = [...flipped, uid];
-    setFlipped(next);
-    if (next.length === 2) {
-      const [a, b] = next.map((u) => cards.find((c) => c.uid === u)!);
-      if (a.id === b.id) {
-        setMatched((m) => [...m, a.id]);
-        confetti({ particleCount: 30, spread: 40 });
-      }
-      setTimeout(() => setFlipped([]), 900);
-    }
-  }
-
-  return (
-    <div className="text-center">
-      <p className="font-bold mb-4">Find matching pairs 🃏</p>
-      <div className="grid grid-cols-4 gap-3">
-        {cards.map((c) => {
-          const open = flipped.includes(c.uid) || matched.includes(c.id);
-          return (
-            <button key={c.uid} onClick={() => flip(c.uid, c.id)} className={`aspect-square rounded-2xl shadow-soft text-4xl grid place-items-center transition ${open ? "bg-white" : "bg-gradient-celebrate text-white"}`}>
-              {open ? <span className={c.kind === "word" ? "font-arabic text-2xl" : ""}>{c.content}</span> : "?"}
-            </button>
-          );
-        })}
-      </div>
-      {matched.length === pool.length && <div className="mt-6 text-3xl font-bold text-primary">🎉 All matched! ⭐⭐⭐</div>}
-    </div>
-  );
-}
-
-/* Listen & repeat */
-function ListenRepeat() {
-  const [w, setW] = useState<Word>(WORDS[0]);
-  const [done, setDone] = useState(false);
-  return (
-    <div className="text-center" dir="rtl">
-      <div className="rounded-[2.5rem] bg-white shadow-pop p-10">
-        <div className="text-[10rem]">{w.emoji}</div>
-        <div className="font-arabic text-5xl font-black mt-2">{w.ar}</div>
-      </div>
-      <div className="mt-6 flex justify-center gap-4">
-        <button onClick={() => speak(w.ar)} className="w-20 h-20 rounded-full bg-sky text-white text-3xl shadow-soft animate-bob" aria-label="Listen">🔊</button>
-        <button onClick={() => { setDone(true); confetti({ particleCount: 40, spread: 70 }); setTimeout(() => { setDone(false); setW(WORDS[Math.floor(Math.random() * WORDS.length)]); }, 1500); }} className="w-20 h-20 rounded-full bg-gradient-celebrate text-white text-3xl shadow-pop animate-breathe" aria-label="Repeat">🎤</button>
-      </div>
-      {done && <div className="mt-4 text-xl font-bold text-primary">⭐⭐⭐ Beautiful!</div>}
-    </div>
   );
 }

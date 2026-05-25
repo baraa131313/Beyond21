@@ -78,6 +78,9 @@ class UserRegister(BaseModel):
     email: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=1, max_length=255)
+    role: str = Field("parent", pattern="^(parent|specialist)$")
+    specialty: Optional[str] = Field(None, max_length=255)
+    institution: Optional[str] = Field(None, max_length=255)
 
 
 class UserLogin(BaseModel):
@@ -89,6 +92,9 @@ class UserOut(BaseModel):
     id: int
     email: str
     full_name: str
+    role: str = "parent"
+    specialty: Optional[str] = None
+    institution: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -162,3 +168,67 @@ class ChildProgressSummary(BaseModel):
     words_practiced: int
     modules_used: list[str]
     recent: list[ProgressOut]
+
+
+# --- Pronunciation schemas ---
+
+class PhonemeScore(BaseModel):
+    arabic: str
+    stars: int
+
+class PronunciationCreate(BaseModel):
+    child_id: int
+    word_id: str = Field(..., max_length=100)
+    word_ar: str = Field(..., max_length=255)
+    emoji: str = Field(..., max_length=50)
+    passed: bool = False
+    overall_score: float = 0
+    phoneme_scores: list[PhonemeScore] = []
+
+class PronunciationOut(BaseModel):
+    id: int
+    child_id: int
+    word_id: str
+    word_ar: str
+    emoji: str
+    passed: bool
+    overall_score: float
+    phoneme_scores: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Quiz schemas ---
+
+class QuizCreate(BaseModel):
+    child_id: int
+    total_questions: int
+    correct: int = 0
+    avg_t: float = 0
+    avg_i: float = 0
+    avg_f: float = 0
+    dominant_action: Optional[str] = None
+
+class QuizOut(BaseModel):
+    id: int
+    child_id: int
+    total_questions: int
+    correct: int
+    avg_t: float
+    avg_i: float
+    avg_f: float
+    dominant_action: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Activity summary ---
+
+class ChildActivitySummary(BaseModel):
+    pronunciations: list[PronunciationOut]
+    quizzes: list[QuizOut]
+    total_stars: int

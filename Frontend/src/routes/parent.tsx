@@ -1,535 +1,394 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { WORDS, AVATARS } from "@/data/words";
+import { WORDS } from "@/data/words";
 import { Beyond21Logo } from "@/components/Beyond21Logo";
-import { MedicalInsights } from "@/components/MedicalInsights";
-import { useAdaptive, colorForScore } from "@/lib/adaptive";
-import { getApiUrl, setApiUrl, checkHealth } from "@/lib/api";
+import { getActiveChild, setActiveChild, fetchActivity, fetchChildren, useAuth, logout, type Child } from "@/lib/auth";
 
 export const Route = createFileRoute("/parent")({
   head: () => ({
     meta: [
-      { title: "Parent Dashboard — Beyond 21" },
-      { name: "description", content: "Follow your child's learning journey, speech progress, and wellness insights." },
+      { title: "Parent Dashboard. Beyond 21" },
+      { name: "description", content: "Follow your child's learning journey." },
     ],
   }),
   component: Parent,
 });
 
-type TabKey = "progress" | "speech" | "exercises" | "medical" | "ai" | "settings";
-const TABS: { k: TabKey; i: string; t: string }[] = [
-  { k: "progress", i: "📈", t: "My Child's Progress" },
-  { k: "speech", i: "🎤", t: "Speech & Pronunciation" },
-  { k: "exercises", i: "🧩", t: "Exercises & Scores" },
-  { k: "medical", i: "🧠", t: "Medical Insights" },
-  { k: "ai", i: "🤖", t: "AI Adaptation" },
-  { k: "settings", i: "⚙️", t: "Settings" },
-];
-
-const CHILD = { ...AVATARS[0], age: 7, totalWords: 48, exercises: 23, mapPos: 6 };
+function getChild() {
+  const active = getActiveChild();
+  if (active) return { emoji: active.avatar || "🧒", name: active.name, age: active.age };
+  return null;
+}
 
 function Parent() {
-  const [tab, setTab] = useState<TabKey>("progress");
-  const [open, setOpen] = useState(true);
+  const { user, setUser, setChild: setContextChild } = useAuth();
+  const navigate = useNavigate();
+  const [activeChild, setActiveChildState] = useState(getChild);
+  const [siblings, setSiblings] = useState<Child[]>([]);
+
+  useEffect(() => {
+    if (!user) { navigate({ to: "/login" }); return; }
+    if (user.role === "specialist") { navigate({ to: "/specialist" }); return; }
+    if (!activeChild) { navigate({ to: "/select-child" }); return; }
+    fetchChildren().then(setSiblings).catch(() => {});
+  }, [user]);
+
+  function switchChild(c: Child) {
+    setActiveChild(c);
+    setContextChild(c);
+    setActiveChildState({ emoji: c.avatar || "🧒", name: c.name, age: c.age });
+    window.location.reload();
+  }
+
+  if (!activeChild) return null;
+  const child = activeChild;
 
   return (
-    <div className="min-h-screen flex font-pro">
-      <aside className={`${open ? "w-64" : "w-20"} bg-white border-r border-border min-h-screen p-4 hidden md:flex flex-col gap-1 sticky top-0 transition-all`}>
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen font-pro">
+      {/* Top header */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-border/50 px-6 py-4">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Beyond21Logo size={open ? 48 : 36} showText={open} />
-            {!open ? null : <span className="sr-only">Beyond 21</span>}
+            <Beyond21Logo size={48} />
           </Link>
-          <button onClick={() => setOpen(!open)} className="text-muted-foreground hover:text-foreground" aria-label="Toggle sidebar">{open ? "◀" : "▶"}</button>
-        </div>
-        {TABS.map((n) => (
-          <button
-            key={n.k}
-            onClick={() => setTab(n.k)}
-            className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${tab === n.k ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground/70"}`}
-            title={n.t}
-          >
-            <span className="text-xl">{n.i}</span>{open && <span>{n.t}</span>}
-          </button>
-        ))}
-        <div className="mt-auto pt-6">
-          <Link to="/learn" className="block text-center rounded-full bg-mint px-3 py-3 text-sm font-bold text-foreground hover:scale-105 transition">
-            🎈 {open && "Open learning hub"}
-          </Link>
-        </div>
-      </aside>
-
-      <main className="flex-1 p-6 md:p-10 max-w-[1400px]">
-        <div className="md:hidden mb-6 flex gap-2 overflow-x-auto pb-2">
-          {TABS.map((n) => (
-            <button key={n.k} onClick={() => setTab(n.k)} className={`flex-shrink-0 rounded-full px-4 py-2 text-xs font-semibold ${tab === n.k ? "bg-primary text-primary-foreground" : "bg-white"}`}>
-              {n.i} {n.t}
+          <div className="flex items-center gap-3">
+            {siblings.length > 1 && (
+              <div className="flex items-center gap-1 bg-primary/5 rounded-full px-3 py-1.5">
+                {siblings.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => switchChild(s)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
+                      s.name === child.name ? "bg-primary text-primary-foreground" : "hover:bg-white text-foreground/70"
+                    }`}
+                  >
+                    <span className="mr-1">{s.avatar || "🧒"}</span>{s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Link to="/learn" className="rounded-full bg-mint px-5 py-2.5 text-sm font-bold text-foreground hover:scale-105 transition">
+              🎈 Learning hub
+            </Link>
+            <button
+              onClick={() => { logout(); setUser(null); navigate({ to: "/" }); }}
+              className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted transition"
+            >
+              Sign out
             </button>
-          ))}
+          </div>
         </div>
+      </header>
 
-        <AnimatePresence mode="wait">
-          <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-            {tab === "progress" && <Progress />}
-            {tab === "speech" && <Speech />}
-            {tab === "exercises" && <ExercisesTab />}
-            {tab === "medical" && <Medical />}
-            {tab === "ai" && <AITab />}
-            {tab === "settings" && <SettingsTab />}
-          </motion.div>
-        </AnimatePresence>
+      <main className="max-w-[1400px] mx-auto p-6 md:p-10">
+        <ProgressPage child={child} />
       </main>
     </div>
   );
 }
 
-function H({ t, s }: { t: string; s: string }) {
-  return (
-    <div className="mb-6">
-      <h1 className="text-3xl font-bold">{t}</h1>
-      <p className="text-muted-foreground mt-1">{s}</p>
-    </div>
-  );
-}
+type Pronunciation = {
+  ts: number;
+  wordId: string;
+  wordAr: string;
+  emoji: string;
+  passed: boolean;
+  overallScore: number;
+  phonemeScores: Array<{ arabic: string; stars: number }>;
+};
 
-function Gauge({ label, value, color }: { label: string; value: number; color: string }) {
-  const r = 40, c = 2 * Math.PI * r, off = c - (value / 100) * c;
-  return (
-    <div className="flex flex-col items-center">
-      <svg width="110" height="110" className="-rotate-90">
-        <circle cx="55" cy="55" r={r} fill="none" stroke="var(--muted)" strokeWidth="10" />
-        <circle cx="55" cy="55" r={r} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
-        <text x="55" y="60" textAnchor="middle" className="rotate-90 fill-foreground font-bold text-lg" transform="rotate(90 55 55)">{value}</text>
-      </svg>
-      <div className="text-sm font-semibold mt-1">{label}</div>
-    </div>
-  );
-}
+type Quiz = {
+  ts: number;
+  totalQuestions: number;
+  correct: number;
+  avgT: number;
+  avgI: number;
+  avgF: number;
+  dominantAction: string | null;
+};
 
-/* ─── Tab 1: Progress ─── */
-function Progress() {
+function ProgressPage({ child }: { child: { emoji: string; name: string; age: number | null } }) {
+  const [pronunciations, setPronunciations] = useState<Pronunciation[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [totalStars, setTotalStars] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const activeChild = getActiveChild();
+    if (!activeChild) return;
+
+    function load() {
+      fetchActivity(activeChild!.id)
+        .then((remote) => {
+          const p: Pronunciation[] = (remote.pronunciations || []).map((p: any) => ({
+            ts: new Date(p.created_at).getTime(),
+            wordId: p.word_id,
+            wordAr: p.word_ar,
+            emoji: p.emoji,
+            passed: p.passed,
+            overallScore: p.overall_score,
+            phonemeScores: typeof p.phoneme_scores === "string" ? JSON.parse(p.phoneme_scores) : (p.phoneme_scores || []),
+          }));
+          const q: Quiz[] = (remote.quizzes || []).map((q: any) => ({
+            ts: new Date(q.created_at).getTime(),
+            totalQuestions: q.total_questions,
+            correct: q.correct,
+            avgT: q.avg_t,
+            avgI: q.avg_i,
+            avgF: q.avg_f,
+            dominantAction: q.dominant_action,
+          }));
+          setPronunciations(p);
+          setQuizzes(q);
+          setTotalStars(remote.total_stars || 0);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const totalAttempts = pronunciations.length;
+  const totalPassed = pronunciations.filter((p) => p.passed).length;
+  const successRate = totalAttempts > 0 ? Math.round((totalPassed / totalAttempts) * 100) : 0;
+  const quizzesDone = quizzes.length;
+  const avgQuizScore = quizzesDone > 0
+    ? Math.round(quizzes.reduce((s, q) => s + (q.correct / q.totalQuestions) * 100, 0) / quizzesDone)
+    : 0;
+
+  const wordStats = new Map<string, { attempts: number; passes: number; bestScore: number }>();
+  for (const p of pronunciations) {
+    const existing = wordStats.get(p.wordId) || { attempts: 0, passes: 0, bestScore: 0 };
+    existing.attempts++;
+    if (p.passed) existing.passes++;
+    if (p.overallScore > existing.bestScore) existing.bestScore = p.overallScore;
+    wordStats.set(p.wordId, existing);
+  }
+  const wordsMastered = Array.from(wordStats.values()).filter((s) => s.passes >= 1).length;
+
+  const categories: Record<string, { attempts: number; passed: number }> = {};
+  for (const p of pronunciations) {
+    const word = WORDS.find((w) => w.id === p.wordId);
+    if (!word) continue;
+    if (!categories[word.category]) categories[word.category] = { attempts: 0, passed: 0 };
+    categories[word.category].attempts++;
+    if (p.passed) categories[word.category].passed++;
+  }
+  const catLabels: Record<string, string> = {
+    animals: "Animals 🐱", food: "Food 🍞", body: "Body 👁️", transport: "Transport 🚗", nature: "Nature 🌙", family: "Family 👨",
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <>
-      <H t="My Child's Progress" s="Today's journey and overall progress" />
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
+    <div className="space-y-6">
+      <div className="mb-2">
+        <h1 className="text-3xl font-bold">My Child's Progress</h1>
+        <p className="text-muted-foreground mt-1">All of {child.name}'s learning activity in one place</p>
+      </div>
+
+      {/* Child header + stats */}
+      <div className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-3xl p-6 shadow-soft md:col-span-2 flex items-center gap-5">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-celebrate grid place-items-center text-4xl shadow-soft">{CHILD.emoji}</div>
+          <div className="w-20 h-20 rounded-3xl bg-gradient-celebrate grid place-items-center text-4xl shadow-soft">{child.emoji}</div>
           <div className="flex-1">
-            <div className="font-bold text-2xl">{CHILD.name} <span className="text-sm text-muted-foreground font-normal">· {CHILD.age} years</span></div>
-            <div className="grid grid-cols-3 gap-3 mt-3 text-center text-sm">
-              <div><div className="text-2xl font-bold text-primary">{CHILD.totalWords}</div><div className="text-muted-foreground">Words learned</div></div>
-              <div><div className="text-2xl font-bold text-primary">{CHILD.exercises}</div><div className="text-muted-foreground">Exercises</div></div>
-              <div><div className="text-2xl font-bold text-primary">🗺️ {CHILD.mapPos}</div><div className="text-muted-foreground">Map progress</div></div>
+            <div className="font-bold text-2xl">{child.name} {child.age && <span className="text-sm text-muted-foreground font-normal">· {child.age} years</span>}</div>
+            <div className="grid grid-cols-4 gap-3 mt-3 text-center text-sm">
+              <div><div className="text-2xl font-bold text-primary">{wordsMastered}</div><div className="text-muted-foreground">Words mastered</div></div>
+              <div><div className="text-2xl font-bold text-primary">{totalAttempts}</div><div className="text-muted-foreground">Pronunciations</div></div>
+              <div><div className="text-2xl font-bold text-primary">{quizzesDone}</div><div className="text-muted-foreground">Quizzes done</div></div>
+              <div><div className="text-2xl font-bold text-primary">{totalStars}</div><div className="text-muted-foreground">Stars earned</div></div>
             </div>
           </div>
         </div>
         <div className="bg-gradient-celebrate text-white rounded-3xl p-6 shadow-pop">
-          <div className="font-semibold opacity-90">Trend</div>
-          <div className="text-2xl font-bold mt-1">Getting better! 📈</div>
-          <div className="mt-3 flex items-end gap-1 h-16">
-            {[30, 45, 40, 55, 60, 70, 78].map((h, i) => (
-              <div key={i} className="flex-1 bg-white/30 rounded-t" style={{ height: `${h}%` }} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-3">Today's activity</h3>
-          <ul className="space-y-3 text-sm">
-            {[
-              { i: "✅", t: "Said «طَيَّارَة» correctly" },
-              { i: "🧩", t: "Exercise: 4/5 correct" },
-              { i: "🌟", t: "New word learned: كُوجِينَة" },
-              { i: "🎉", t: "Earned new sticker: 🦁" },
-              { i: "😴", t: "Took a sensory break" },
-            ].map((a, i) => (
-              <li key={i} className="flex gap-3 items-start"><span className="text-xl">{a.i}</span><span>{a.t}</span></li>
-            ))}
-          </ul>
-        </div>
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-3">Sticker collection 🏅</h3>
-          <div className="flex flex-wrap gap-2 text-4xl">
-            {["🦁", "🌟", "🍕", "🌈", "🏆", "🦋", "🐠", "🌸", "🚀"].map((s) => (
-              <span key={s} className="bg-muted rounded-2xl p-2">{s}</span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl p-6 shadow-soft">
-        <h3 className="font-bold mb-3">Words mastered vs in progress</h3>
-        <div className="flex gap-4 mb-3 text-xs">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-happy" /> Mastered</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-sunny" /> In progress</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-muted" /> Not started</span>
-        </div>
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-          {WORDS.map((w, i) => {
-            const state = i % 3 === 0 ? "happy" : i % 3 === 1 ? "sunny" : "muted";
-            return (
-              <div key={w.id} className={`aspect-square rounded-xl grid place-items-center text-3xl border-2 ${state === "happy" ? "border-happy bg-happy/20" : state === "sunny" ? "border-sunny bg-sunny/20" : "border-muted bg-muted"}`} title={w.ar}>
-                {w.emoji}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ─── Tab 2: Speech ─── */
-function Speech() {
-  const [showTech, setShowTech] = useState(false);
-  return (
-    <>
-      <H t="Speech & Pronunciation" s="How clearly your child is saying each word" />
-
-      <div className="bg-white rounded-3xl p-6 shadow-soft mb-4">
-        <h3 className="font-bold mb-4">Per-word breakdown</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-muted-foreground text-left">
-              <tr>
-                <th className="py-2">Word</th><th>Arabic</th><th>Attempts</th><th>Best</th><th>Confused with</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {WORDS.slice(0, 10).map((w, i) => {
-                const stars = ((i % 3) + 1);
-                const conf = WORDS[(i + 3) % WORDS.length];
-                return (
-                  <tr key={w.id} className="border-t border-border">
-                    <td className="py-3 text-3xl">{w.emoji}</td>
-                    <td className="font-arabic text-xl" dir="rtl">{w.ar}</td>
-                    <td>{4 + i}</td>
-                    <td>{"⭐".repeat(stars)}<span className="opacity-30">{"⭐".repeat(3 - stars)}</span></td>
-                    <td className="flex items-center gap-2 py-3"><span className="text-xl">{conf.emoji}</span><span className="font-arabic" dir="rtl">{conf.ar}</span></td>
-                    <td><button className="text-primary text-xs font-semibold">▶ Play</button></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4 mb-4">
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-3">Quality by category</h3>
-          {["Animals 🐱", "Food 🍞", "Body 👁️", "Transport 🚗", "Nature 🌙"].map((c, i) => {
-            const v = 60 + i * 7;
-            return (
-              <div key={c} className="mb-3">
-                <div className="flex justify-between text-sm mb-1"><span>{c}</span><span className="font-bold">{v}%</span></div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-gradient-celebrate" style={{ width: `${v}%` }} /></div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-3">Voice setup status</h3>
-          <div className="text-sm">
-            <div className="flex justify-between mb-2"><span>Words recorded</span><span className="font-bold">20 / 20 ✅</span></div>
-            <div className="h-3 rounded-full bg-muted overflow-hidden mb-3"><div className="h-full bg-happy" style={{ width: "100%" }} /></div>
-            <div className="flex justify-between mb-2"><span>Voice quality</span><span className="font-bold">Excellent 🌟</span></div>
-            <button className="mt-3 w-full rounded-full bg-mint px-4 py-2 font-bold">Re-record words</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-soft overflow-hidden">
-        <button onClick={() => setShowTech(!showTech)} className="w-full p-6 flex items-center justify-between hover:bg-muted/30">
-          <div>
-            <h3 className="font-bold">🔧 Technical Details</h3>
-            <p className="text-xs text-muted-foreground mt-1">For specialists — ASR metrics</p>
-          </div>
-          <span>{showTech ? "▲" : "▼"}</span>
-        </button>
-        {showTech && (
-          <div className="px-6 pb-6 grid md:grid-cols-3 gap-4 text-sm">
-            <div className="bg-muted rounded-2xl p-4"><div className="text-2xl font-bold">34.3%</div><div className="text-muted-foreground">Word Error Rate (WER)</div></div>
-            <div className="bg-muted rounded-2xl p-4"><div className="text-2xl font-bold">18.1%</div><div className="text-muted-foreground">Character Error Rate (CER)</div></div>
-            <div className="bg-muted rounded-2xl p-4"><div className="text-2xl font-bold">+11%</div><div className="text-muted-foreground">LM rescoring lift</div></div>
-            <div className="md:col-span-3 bg-muted rounded-2xl p-4">
-              <div className="font-bold mb-2">Top confusion pairs (Levenshtein + LM)</div>
-              <table className="w-full text-xs font-mono">
-                <thead><tr className="text-muted-foreground"><th className="text-left">Said</th><th className="text-left">Meant</th><th className="text-right">Count</th></tr></thead>
-                <tbody>
-                  {[["taara","tayyara",12],["sayyara","tayyara",7],["kelb","kalb",5]].map((r,i)=>(
-                    <tr key={i}><td>{r[0]}</td><td className="text-primary">{r[1]}</td><td className="text-right">{r[2]}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="font-semibold opacity-90">Quiz Average</div>
+          <div className="text-3xl font-bold mt-1">{quizzesDone > 0 ? `${avgQuizScore}%` : "No quizzes yet"}</div>
+          {quizzes.length > 0 && (
+            <div className="mt-3 flex items-end gap-1 h-16">
+              {quizzes.slice(-7).map((q, i) => (
+                <div key={i} className="flex-1 bg-white/30 rounded-t" style={{ height: `${(q.correct / q.totalQuestions) * 100}%` }} />
+              ))}
             </div>
+          )}
+          {quizzes.length === 0 && <p className="text-sm opacity-80 mt-3">Scores will appear here after quizzes</p>}
+        </div>
+      </div>
+
+      {/* Recent quiz sessions */}
+      <div className="bg-white rounded-3xl p-6 shadow-soft">
+        <h3 className="font-bold text-lg mb-3">🧩 Quiz Sessions</h3>
+        {quizzes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No quiz sessions recorded yet. Start a quiz from the learning hub.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-muted-foreground text-left">
+                <tr>
+                  <th className="py-2">Date</th>
+                  <th>Score</th>
+                  <th>Correct</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quizzes.slice(0, 15).map((q, i) => {
+                  const pct = Math.round((q.correct / q.totalQuestions) * 100);
+                  return (
+                    <tr key={i} className="border-t border-border">
+                      <td className="py-3 text-muted-foreground">{new Date(q.ts).toLocaleDateString()} {new Date(q.ts).toLocaleTimeString()}</td>
+                      <td className="font-bold">{pct}%</td>
+                      <td>{q.correct}/{q.totalQuestions}</td>
+                      <td>{q.correct === q.totalQuestions ? "🌟 Perfect" : pct >= 70 ? "⭐ Great" : "💪 Keep going"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
-    </>
-  );
-}
 
-/* ─── Tab 3: Exercises ─── */
-function ExercisesTab() {
-  const cog = [
-    { l: "Attention", v: 70, c: "var(--sky)" },
-    { l: "Memory", v: 74, c: "var(--happy)" },
-    { l: "Language", v: 71, c: "var(--bubble)" },
-    { l: "Motor", v: 75, c: "var(--peach)" },
-  ];
-  const overall = Math.round(cog.reduce((s, x) => s + x.v, 0) / cog.length);
-  return (
-    <>
-      <H t="Exercises & Scores" s="Performance across cognitive dimensions" />
-
-      <div className="bg-white rounded-3xl p-6 shadow-soft mb-4">
-        <h3 className="font-bold mb-4">Cognitive scores</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 justify-items-center">
-          {cog.map((g) => <Gauge key={g.l} label={g.l} value={g.v} color={g.c} />)}
-        </div>
-        <div className="mt-6 rounded-2xl bg-gradient-celebrate text-white p-5 text-center">
-          <div className="text-sm opacity-90">Overall Cognitive Score</div>
-          <div className="text-4xl font-bold">{overall} / 100</div>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4 mb-4">
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-3">Exercise history</h3>
-          <ul className="space-y-2 text-sm">
-            {[
-              { d: "Today 10:24", t: "Which picture?", s: "⭐⭐⭐", p: "100%", time: "3:12" },
-              { d: "Today 09:50", t: "Match the pairs", s: "⭐⭐", p: "75%", time: "4:40" },
-              { d: "Yesterday", t: "Listen and repeat", s: "⭐⭐⭐", p: "90%", time: "2:50" },
-              { d: "Yesterday", t: "What is this?", s: "⭐⭐", p: "70%", time: "5:10" },
-            ].map((e, i) => (
-              <li key={i} className="border-t border-border pt-2 flex justify-between gap-2">
-                <div><div className="font-semibold">{e.t}</div><div className="text-xs text-muted-foreground">{e.d} · {e.time}</div></div>
-                <div className="text-right"><div>{e.s}</div><div className="text-xs text-muted-foreground">{e.p}</div></div>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-3">Trends (last 4 weeks)</h3>
-          <div className="space-y-3">
-            {cog.map((g) => (
-              <div key={g.l}>
-                <div className="flex justify-between text-sm mb-1"><span>{g.l}</span><span className="text-primary">↑ {g.v}</span></div>
-                <svg viewBox="0 0 100 24" className="w-full h-6">
-                  <polyline fill="none" stroke={g.c} strokeWidth="2" points={`0,${24 - g.v / 5} 25,${22 - g.v / 5} 50,${20 - g.v / 5} 75,${18 - g.v / 5} 100,${16 - g.v / 5}`} />
-                </svg>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
+      {/* Pronunciation progress grid */}
       <div className="bg-white rounded-3xl p-6 shadow-soft">
-        <h3 className="font-bold mb-3">Strengths & focus areas</h3>
-        <div className="grid md:grid-cols-2 gap-3 text-sm">
-          <div className="rounded-2xl bg-happy/30 p-4">💪 <strong>Strong in Motor skills</strong> — keep playing matching games!</div>
-          <div className="rounded-2xl bg-sunny/30 p-4">📖 <strong>Practice Language</strong> — try more "Listen and repeat".</div>
+        <h3 className="font-bold text-lg mb-3">🎤 Word Progress</h3>
+        <div className="flex gap-4 mb-3 text-xs">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-happy" /> Mastered</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-sunny" /> Practiced</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-muted" /> Not tried</span>
         </div>
-      </div>
-    </>
-  );
-}
-
-/* ─── Tab 4: Medical ─── */
-function Medical() {
-  return <MedicalInsights />;
-}
-
-/* ─── Tab 6: Settings ─── */
-function SettingsTab() {
-  const [url, setUrl] = useState(getApiUrl());
-  const [status, setStatus] = useState<"idle" | "checking" | "connected" | "error">("idle");
-
-  useEffect(() => {
-    if (getApiUrl()) {
-      setStatus("checking");
-      checkHealth().then((ok) => setStatus(ok ? "connected" : "error"));
-    }
-  }, []);
-
-  async function handleSave() {
-    setApiUrl(url);
-    setStatus("checking");
-    const ok = await checkHealth();
-    setStatus(ok ? "connected" : "error");
-  }
-
-  return (
-    <>
-      <H t="Settings" s="Connect to the ASR backend (Colab)" />
-      <div className="bg-white rounded-3xl p-6 shadow-soft max-w-xl">
-        <h3 className="font-bold mb-4">🔗 API Connection</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Paste the ngrok URL from your Colab notebook (Notebook 09) here.
-          The app will use this to send audio for speech recognition and pronunciation scoring.
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://xxxx-xx-xx.ngrok-free.app"
-            className="flex-1 rounded-xl border border-border px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <button
-            onClick={handleSave}
-            className="rounded-xl bg-primary text-primary-foreground px-6 py-3 font-bold hover:scale-105 transition"
-          >
-            Save
-          </button>
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-          {status === "idle" && <span className="text-sm text-muted-foreground">Not configured yet</span>}
-          {status === "checking" && <span className="text-sm text-muted-foreground">⏳ Checking connection...</span>}
-          {status === "connected" && <span className="text-sm text-green-600 font-bold">✅ Connected — API is running!</span>}
-          {status === "error" && <span className="text-sm text-red-600 font-bold">❌ Cannot reach API — check if Colab is running</span>}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          {WORDS.map((w) => {
+            const stats = wordStats.get(w.id);
+            let state: "mastered" | "practiced" | "new" = "new";
+            if (stats && stats.passes >= 1) state = "mastered";
+            else if (stats && stats.attempts >= 1) state = "practiced";
+            return (
+              <div
+                key={w.id}
+                className={`rounded-2xl p-3 text-center border-2 transition ${
+                  state === "mastered" ? "border-happy bg-happy/20" :
+                  state === "practiced" ? "border-sunny bg-sunny/20" :
+                  "border-muted bg-muted/30"
+                }`}
+              >
+                <div className="text-4xl">{w.emoji}</div>
+                <div className="font-arabic text-lg font-bold mt-1" dir="rtl">{w.ar}</div>
+                {stats ? (
+                  <div className="text-xs text-muted-foreground mt-1">{stats.attempts} tries · {stats.passes} passed</div>
+                ) : (
+                  <div className="text-xs text-muted-foreground mt-1">Not tried yet</div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 shadow-soft max-w-xl mt-4">
-        <h3 className="font-bold mb-3">📋 How to connect</h3>
-        <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-          <li>Open <strong>Notebook 09</strong> on Google Colab</li>
-          <li>Run all cells (models load in ~3 minutes)</li>
-          <li>Copy the <strong>ngrok URL</strong> printed in the last cell</li>
-          <li>Paste it above and click Save</li>
-          <li>The app is now connected to your ASR pipeline!</li>
-        </ol>
-      </div>
-    </>
-  );
-}
-
-/* ─── Tab 5: AI Adaptation ─── */
-function AITab() {
-  const s = useAdaptive();
-  const [breakSens, setBreakSens] = useState(60);
-  const [diffSens, setDiffSens] = useState(70);
-
-  const bars = [
-    { k: "Focus Ratio", v: Math.round(s.focus), invert: false },
-    { k: "Movement Intensity", v: Math.round(s.movement), invert: true },
-    { k: "Frustration Level", v: Math.round(s.frustration), invert: true },
-    { k: "Error Rate", v: Math.round(s.errorRate), invert: true },
-  ];
-
-  return (
-    <>
-      <H t="AI Adaptation" s="Behind-the-scenes Adaptive Learning Controller" />
-
-      <div className="bg-foreground text-background rounded-3xl p-5 shadow-pop mb-4 relative overflow-hidden">
-        <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-bubble/30 blur-2xl" />
-        <div className="relative flex items-center gap-3">
-          <span className="text-3xl animate-breathe">🤖</span>
-          <div>
-            <div className="text-xs opacity-70">Live status · session active</div>
-            <div className="font-bold text-lg">{s.decision.icon} {s.decision.text}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-4">
-        {/* LEFT — Live Sensor Feed */}
+      {/* Quality by category */}
+      {Object.keys(categories).length > 0 && (
         <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-4">📡 Live Features</h3>
-          <div className="space-y-4">
-            {bars.map((b) => {
-              const color = colorForScore(b.v, b.invert);
-              return (
-                <div key={b.k}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-semibold">{b.k}</span>
-                    <span className="font-bold" style={{ color }}>{b.v}%</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-muted overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full"
-                      animate={{ width: `${b.v}%`, backgroundColor: color }}
-                      transition={{ duration: 0.6 }}
-                    />
-                  </div>
+          <h3 className="font-bold text-lg mb-3">📊 Quality by Category</h3>
+          {Object.entries(catLabels).map(([cat, label]) => {
+            const stats = categories[cat];
+            if (!stats) return null;
+            const v = Math.round((stats.passed / stats.attempts) * 100);
+            return (
+              <div key={cat} className="mb-3">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>{label}</span>
+                  <span className="font-bold">{v}% ({stats.passed}/{stats.attempts})</span>
                 </div>
-              );
-            })}
-          </div>
-          <div className="mt-6 pt-4 border-t border-border grid grid-cols-2 gap-3 text-center">
-            <div className="rounded-2xl bg-muted p-3">
-              <div className="text-2xl font-bold">{s.hesitations}</div>
-              <div className="text-xs text-muted-foreground">Total hesitations</div>
-            </div>
-            <div className="rounded-2xl bg-muted p-3">
-              <div className="text-2xl font-bold">{(s.avgResponseMs / 1000).toFixed(1)}s</div>
-              <div className="text-xs text-muted-foreground">Avg response time</div>
-            </div>
-          </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-gradient-celebrate transition-all" style={{ width: `${v}%` }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
+      )}
 
-        {/* CENTER — Neutrosophic Brain */}
-        <div className="bg-white rounded-3xl p-6 shadow-soft">
-          <h3 className="font-bold mb-4">🧠 Neutrosophic Logic</h3>
-          <div className="grid grid-cols-3 gap-2 justify-items-center">
-            <Gauge label="T (Truth)" value={Math.round(s.T * 100)} color="var(--happy)" />
-            <Gauge label="I (Indet.)" value={Math.round(s.I * 100)} color="var(--sunny)" />
-            <Gauge label="F (False)" value={Math.round(s.F * 100)} color="var(--peach)" />
+      {/* Recent pronunciation attempts */}
+      <div className="bg-white rounded-3xl p-6 shadow-soft">
+        <h3 className="font-bold text-lg mb-3">🗣️ Recent Pronunciation Attempts</h3>
+        {pronunciations.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No pronunciation attempts yet. Try the Words activity from the learning hub.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-muted-foreground text-left">
+                <tr>
+                  <th className="py-2">Word</th>
+                  <th>Result</th>
+                  <th>Score</th>
+                  <th>Phonemes</th>
+                  <th>When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pronunciations.slice(0, 20).map((p, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="py-3">
+                      <span className="text-2xl mr-2">{p.emoji}</span>
+                      <span className="font-arabic text-lg" dir="rtl">{p.wordAr}</span>
+                    </td>
+                    <td>{p.passed ? "✅" : "🔄"}</td>
+                    <td className="font-bold">{Math.round(p.overallScore)}%</td>
+                    <td>
+                      <div className="flex gap-1 flex-wrap">
+                        {p.phonemeScores.map((ph, j) => (
+                          <span
+                            key={j}
+                            className={`rounded-lg px-2 py-0.5 text-xs font-bold ${
+                              ph.stars >= 3 ? "bg-green-100 text-green-700" :
+                              ph.stars >= 2 ? "bg-yellow-100 text-yellow-700" :
+                              "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {ph.arabic} {"⭐".repeat(ph.stars)}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(p.ts)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="mt-6 text-center">
-            <motion.div
-              className="text-6xl mx-auto"
-              animate={{ scale: [1, 1.15, 1], filter: ["drop-shadow(0 0 0px var(--primary))", "drop-shadow(0 0 18px var(--primary))", "drop-shadow(0 0 0px var(--primary))"] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >🧠</motion.div>
-            <div className="mt-3 rounded-2xl bg-gradient-celebrate text-white p-4">
-              <div className="text-xs opacity-90">Current AI decision</div>
-              <div className="font-bold text-lg mt-1">{s.decision.icon} {s.decision.text}</div>
-            </div>
-          </div>
-          <div className="mt-4 space-y-2 text-sm">
-            <div>
-              <div className="flex justify-between mb-1"><span>Sensory break sensitivity</span><span className="font-bold">{breakSens}%</span></div>
-              <input type="range" min={0} max={100} value={breakSens} onChange={(e) => setBreakSens(Number(e.target.value))} className="w-full" />
-            </div>
-            <div>
-              <div className="flex justify-between mb-1"><span>Difficulty adapt speed</span><span className="font-bold">{diffSens}%</span></div>
-              <input type="range" min={0} max={100} value={diffSens} onChange={(e) => setDiffSens(Number(e.target.value))} className="w-full" />
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT — Session Log */}
-        <div className="bg-white rounded-3xl p-6 shadow-soft flex flex-col">
-          <h3 className="font-bold mb-4">📝 Session Log</h3>
-          <div className="flex-1 max-h-[460px] overflow-y-auto pr-2 space-y-2 text-sm">
-            <AnimatePresence initial={false}>
-              {s.log.map((entry) => (
-                <motion.div
-                  key={entry.ts}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex gap-2 items-start border-b border-border/60 pb-2 last:border-0"
-                >
-                  <span className="text-lg">{entry.icon}</span>
-                  <div className="flex-1">
-                    <div className="font-medium leading-snug">{entry.text}</div>
-                    <div className="text-[10px] text-muted-foreground font-mono">
-                      {new Date(entry.ts).toLocaleTimeString()}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
+        )}
       </div>
-    </>
+
+      {/* Empty state */}
+      {totalAttempts === 0 && quizzesDone === 0 && (
+        <div className="bg-white rounded-3xl p-12 shadow-soft text-center">
+          <div className="text-6xl mb-4">🎈</div>
+          <h3 className="font-bold text-xl">No activity yet</h3>
+          <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+            When {child.name} starts learning, all progress from quizzes and pronunciation practice will appear here automatically.
+          </p>
+          <Link to="/learn" className="mt-6 inline-block rounded-full bg-primary text-primary-foreground px-8 py-3 font-bold shadow-soft hover:scale-105 transition">
+            🎈 Start learning
+          </Link>
+        </div>
+      )}
+    </div>
   );
+}
+
+function timeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return "Just now";
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h ago`;
+  return new Date(ts).toLocaleDateString();
 }

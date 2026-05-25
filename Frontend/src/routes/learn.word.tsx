@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { WORDS } from "@/data/words";
+import { WORDS, loadAllWords, type Word } from "@/data/words";
 import { Mascot } from "@/components/Mascot";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { AudioRecorder } from "@/lib/recorder";
-import { pronounce, getApiUrl, playReferenceAudio } from "@/lib/api";
+import { pronounce, getAsrUrl, playReferenceAudio } from "@/lib/api";
+import { activityStore } from "@/lib/activityStore";
 
 function speakToChild(text: string, lang = "ar-TN") {
   if ("speechSynthesis" in window) {
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/learn/word")({
 type Status = "idle" | "listening" | "processing" | "correct" | "incorrect";
 
 function LearnWord() {
+  const [words, setWords] = useState<Word[]>(WORDS);
   const [idx, setIdx] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
   const [stars, setStars] = useState(0);
@@ -34,10 +36,28 @@ function LearnWord() {
   const [feedback, setFeedback] = useState("");
   const [phonemeScores, setPhonemeScores] = useState<Array<{ arabic: string; stars: number }>>([]);
   const recorderRef = useRef(new AudioRecorder());
-  const word = WORDS[idx];
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const word = words[idx];
+
+  useEffect(() => {
+    loadAllWords().then(setWords);
+  }, []);
+
+  function stopAllAudio() {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }
+
+  function later(fn: () => void, ms: number) {
+    const id = setTimeout(fn, ms);
+    timersRef.current.push(id);
+    return id;
+  }
 
   function playReference() {
-    if (getApiUrl()) {
+    stopAllAudio();
+    if (getAsrUrl()) {
       playReferenceAudio(word.ar).catch(() => {
         fallbackSpeak(word.ar);
       });
@@ -55,11 +75,12 @@ function LearnWord() {
   }
 
   async function handleMic() {
-    if (!getApiUrl()) {
+    if (!getAsrUrl()) {
       alert("Please set the API URL first.\nGo to the Parent Dashboard → Settings tab.");
       return;
     }
 
+    stopAllAudio();
     setStatus("listening");
     setFeedback("");
     setPhonemeScores([]);
@@ -67,7 +88,7 @@ function LearnWord() {
     try {
       await recorderRef.current.start();
 
-      setTimeout(async () => {
+      later(async () => {
         const audioBlob = await recorderRef.current.stop();
         setStatus("processing");
 
@@ -92,8 +113,13 @@ function LearnWord() {
             setQuality(3);
             setFeedback(result.feedback || "");
             setPhonemeScores(result.phoneme_scores!.map((p) => ({ arabic: p.arabic, stars: p.stars })));
+            activityStore.recordPronunciation({
+              wordId: word.id, wordAr: word.ar, emoji: word.emoji,
+              passed: true, overallScore: result.overall_score || 100,
+              phonemeScores: result.phoneme_scores!.map((p) => ({ arabic: p.arabic, stars: p.stars })),
+            });
             speakToChild("برافو! ممتاز!", "ar");
-            setTimeout(next, 3000);
+            later(next, 4000);
           } else {
             const avgStars = Math.round((result.overall_score || 0) / 33);
             setQuality(Math.max(1, Math.min(3, avgStars)));
@@ -101,26 +127,35 @@ function LearnWord() {
             setStatus("incorrect");
             setFeedback(result.feedback || "");
             setPhonemeScores(result.phoneme_scores!.map((p) => ({ arabic: p.arabic, stars: p.stars })));
+            activityStore.recordPronunciation({
+              wordId: word.id, wordAr: word.ar, emoji: word.emoji,
+              passed: false, overallScore: result.overall_score || 0,
+              phonemeScores: result.phoneme_scores!.map((p) => ({ arabic: p.arabic, stars: p.stars })),
+            });
 
-            // Voice feedback: encourage + play correct pronunciation
-            speakToChild("حاول مرة أخرى، اسمع", "ar");
-            setTimeout(async () => {
-              await playReferenceAudio(word.ar).catch(() => {});
-            }, 1500);
+            later(async () => {
+              speakToChild("حاول مرة أخرى، اسمع", "ar");
+              later(async () => {
+                await playReferenceAudio(word.ar).catch(() => {});
+              }, 2000);
+            }, 500);
 
             if (attempts >= 2) {
-              setTimeout(() => {
+              later(() => {
+                stopAllAudio();
                 speakToChild("يلا نجربو كلمة أخرى", "ar");
-                setStatus("idle");
-                next();
-              }, 5000);
+                later(() => {
+                  setStatus("idle");
+                  next();
+                }, 2000);
+              }, 6000);
             }
           }
         } catch (err) {
           setStatus("idle");
           setFeedback("Connection error — check if Colab is running");
         }
-      }, 2500);
+      }, 3000);
     } catch {
       setStatus("idle");
       setFeedback("Microphone access denied");
@@ -128,12 +163,13 @@ function LearnWord() {
   }
 
   function next() {
+    stopAllAudio();
     setStatus("idle");
     setAttempts(0);
     setQuality(3);
     setFeedback("");
     setPhonemeScores([]);
-    setIdx((i) => (i + 1) % WORDS.length);
+    setIdx((i) => (i + 1) % words.length);
   }
 
   return (
@@ -146,6 +182,9 @@ function LearnWord() {
           <span className="text-2xl">📖</span><span>Learn a Word</span>
         </div>
         <Link to="/" className="rounded-full bg-white/80 backdrop-blur w-14 h-14 grid place-items-center text-2xl shadow-soft hover:scale-110 transition" aria-label="Home">🏠</Link>
+      </div>
+      <div className="relative z-10 text-center mt-2">
+        <p className="text-lg font-bold text-foreground/70">Listen, say it & earn stars! 🌟</p>
       </div>
 
       <section className="relative z-10 max-w-2xl mx-auto px-6 mt-4" dir="rtl">

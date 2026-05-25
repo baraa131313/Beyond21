@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { FloatingBackground } from "@/components/FloatingBackground";
 import { Beyond21Logo } from "@/components/Beyond21Logo";
 import { Mascot } from "@/components/Mascot";
-import { apiRegister, useAuth } from "@/lib/auth";
+import { apiRegister, persistLogin, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign Up — Beyond 21" }] }),
@@ -36,8 +36,9 @@ function Signup() {
 
     setLoading(true);
     try {
-      const { user } = await apiRegister(email, password, fullName);
-      setUser(user);
+      const data = await apiRegister(email, password, fullName, "parent");
+      persistLogin(data);
+      setUser(data.user);
       navigate({ to: "/select-child" });
     } catch (err: any) {
       setError(err.message || "Registration failed");
@@ -62,8 +63,8 @@ function Signup() {
               <Beyond21Logo size={56} />
             </div>
             <Mascot mood="celebrate" size={80} />
-            <h1 className="text-3xl font-bold mt-3">Create Account</h1>
-            <p className="text-muted-foreground mt-1">Set up your parent account</p>
+            <h1 className="text-3xl font-bold mt-3">Get Started</h1>
+            <p className="text-muted-foreground mt-1">Join Beyond 21</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

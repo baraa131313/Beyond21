@@ -1,16 +1,24 @@
 import { createContext, useContext } from "react";
 
-const DEFAULT_BACKEND = "https://interactive-learning-platform-production-3b22.up.railway.app";
+const PRODUCTION_BACKEND = "https://interactive-learning-platform-production-3b22.up.railway.app";
 
 const API = () => {
-  if (typeof window === "undefined") return DEFAULT_BACKEND;
-  return localStorage.getItem("beyond21_backend_url") || DEFAULT_BACKEND;
+  if (typeof window === "undefined") return PRODUCTION_BACKEND;
+  const stored = localStorage.getItem("beyond21_backend_url");
+  if (stored) return stored;
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:8000";
+  }
+  return PRODUCTION_BACKEND;
 };
 
 export interface User {
   id: number;
   email: string;
   full_name: string;
+  role: "parent" | "specialist";
+  specialty?: string;
+  institution?: string;
   created_at: string;
 }
 
@@ -30,19 +38,24 @@ function headers() {
   return h;
 }
 
-export async function apiRegister(email: string, password: string, full_name: string) {
+export async function apiRegister(
+  email: string,
+  password: string,
+  full_name: string,
+  role: "parent" | "specialist" = "parent",
+  specialty?: string,
+  institution?: string,
+) {
   const res = await fetch(`${API()}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, full_name }),
+    body: JSON.stringify({ email, password, full_name, role, specialty, institution }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Registration failed");
   }
   const data = await res.json();
-  localStorage.setItem("beyond21_token", data.token);
-  localStorage.setItem("beyond21_user", JSON.stringify(data.user));
   return data as { token: string; user: User };
 }
 
@@ -57,9 +70,12 @@ export async function apiLogin(email: string, password: string) {
     throw new Error(err.detail || "Login failed");
   }
   const data = await res.json();
+  return data as { token: string; user: User };
+}
+
+export function persistLogin(data: { token: string; user: User }) {
   localStorage.setItem("beyond21_token", data.token);
   localStorage.setItem("beyond21_user", JSON.stringify(data.user));
-  return data as { token: string; user: User };
 }
 
 export function getStoredUser(): User | null {
@@ -135,6 +151,149 @@ export async function recordProgress(data: {
   });
   if (!res.ok) throw new Error("Failed to record progress");
   return res.json();
+}
+
+export async function recordPronunciation(data: {
+  child_id: number;
+  word_id: string;
+  word_ar: string;
+  emoji: string;
+  passed: boolean;
+  overall_score: number;
+  phoneme_scores: Array<{ arabic: string; stars: number }>;
+}) {
+  const res = await fetch(`${API()}/api/activity/pronunciation`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to record pronunciation");
+  return res.json();
+}
+
+export async function recordQuizSession(data: {
+  child_id: number;
+  total_questions: number;
+  correct: number;
+  avg_t: number;
+  avg_i: number;
+  avg_f: number;
+  dominant_action?: string;
+}) {
+  const res = await fetch(`${API()}/api/activity/quiz`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to record quiz");
+  return res.json();
+}
+
+export async function fetchActivity(childId: number) {
+  const res = await fetch(`${API()}/api/activity/${childId}`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to fetch activity");
+  return res.json();
+}
+
+export interface SpecialistChild {
+  id: number;
+  name: string;
+  age: number | null;
+  avatar: string;
+  parent_name: string;
+  parent_email: string;
+  pronunciation_attempts: number;
+  quiz_sessions: number;
+  total_stars: number;
+  created_at: string;
+}
+
+export interface PlatformStats {
+  total_children: number;
+  total_parents: number;
+  total_pronunciations: number;
+  total_quizzes: number;
+  total_stars: number;
+}
+
+export async function fetchSpecialistChildren(): Promise<SpecialistChild[]> {
+  const res = await fetch(`${API()}/api/specialist/children`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to fetch children");
+  return res.json();
+}
+
+export async function fetchPlatformStats(): Promise<PlatformStats> {
+  const res = await fetch(`${API()}/api/specialist/stats`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to fetch stats");
+  return res.json();
+}
+
+export interface CustomWordData {
+  id: string;
+  ar: string;
+  translit: string;
+  en: string;
+  emoji: string;
+  category: string;
+}
+
+export interface CustomQuizData {
+  id: number;
+  question_text: string;
+  question_type: string;
+  options: Array<{ label: string; value: string; correct: boolean; color?: string }>;
+}
+
+export async function fetchCustomWords(): Promise<CustomWordData[]> {
+  const res = await fetch(`${API()}/api/content/words`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to fetch words");
+  return res.json();
+}
+
+export async function createCustomWord(data: Omit<CustomWordData, "id">): Promise<CustomWordData> {
+  const res = await fetch(`${API()}/api/content/words`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create word");
+  return res.json();
+}
+
+export async function deleteCustomWord(id: number): Promise<void> {
+  const res = await fetch(`${API()}/api/content/words/${id}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!res.ok) throw new Error("Failed to delete word");
+}
+
+export async function fetchCustomQuizzes(): Promise<CustomQuizData[]> {
+  const res = await fetch(`${API()}/api/content/quizzes`, { headers: headers() });
+  if (!res.ok) throw new Error("Failed to fetch quizzes");
+  return res.json();
+}
+
+export async function createCustomQuiz(data: {
+  question_text: string;
+  question_type: string;
+  options: Array<{ label: string; value: string; correct: boolean; color?: string }>;
+}): Promise<CustomQuizData> {
+  const res = await fetch(`${API()}/api/content/quizzes`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create quiz");
+  return res.json();
+}
+
+export async function deleteCustomQuiz(id: number): Promise<void> {
+  const res = await fetch(`${API()}/api/content/quizzes/${id}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!res.ok) throw new Error("Failed to delete quiz");
 }
 
 export interface AuthContextType {

@@ -3,7 +3,6 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.schemas import MedicalPrediction, MedicalHealthResponse
-from app.services.brain_pipeline import brain_pipeline
 
 router = APIRouter()
 
@@ -17,6 +16,8 @@ async def medical_health() -> MedicalHealthResponse:
 @router.post("/predict", response_model=MedicalPrediction)
 async def predict_medical(image: UploadFile = File(...)) -> MedicalPrediction:
     """Analyze an uploaded MRI image and return DS anomaly predictions."""
+    from app.services.brain_pipeline import brain_pipeline
+
     contents = await image.read()
     try:
         result = brain_pipeline.run_full_pipeline(contents)

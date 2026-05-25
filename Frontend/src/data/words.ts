@@ -1,11 +1,30 @@
+import { fetchCustomWords } from "@/lib/auth";
+
 export type Word = {
   id: string;
-  ar: string;       // Arabic word
-  translit: string; // English translit
-  en: string;       // English meaning
-  emoji: string;    // visual placeholder illustration
-  category: "animals" | "food" | "transport" | "body" | "nature";
+  ar: string;
+  translit: string;
+  en: string;
+  emoji: string;
+  category: string;
 };
+
+export async function loadAllWords(): Promise<Word[]> {
+  try {
+    const custom = await fetchCustomWords();
+    const mapped: Word[] = custom.map((w) => ({
+      id: w.id,
+      ar: w.ar,
+      translit: w.translit,
+      en: w.en,
+      emoji: w.emoji,
+      category: w.category,
+    }));
+    return [...WORDS, ...mapped];
+  } catch {
+    return WORDS;
+  }
+}
 
 export const WORDS: Word[] = [
   { id: "w1", ar: "طَيَّارَة", translit: "tayyara", en: "Airplane", emoji: "✈️", category: "transport" },

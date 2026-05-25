@@ -1,19 +1,32 @@
-const STORAGE_KEY = "beyond21_api_url";
+const API_URL = "http://localhost:8000";
+const ASR_URL = "http://localhost:8001";
 
 export function getApiUrl(): string {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem(STORAGE_KEY) || "";
+  return API_URL;
 }
 
-export function setApiUrl(url: string) {
-  const clean = url.replace(/\/+$/, "");
-  localStorage.setItem(STORAGE_KEY, clean);
+export function getAsrUrl(): string {
+  return ASR_URL;
 }
 
 const HEADERS = { "ngrok-skip-browser-warning": "true" };
 
 export async function checkHealth(): Promise<boolean> {
   const base = getApiUrl();
+  if (!base) return false;
+  try {
+    const res = await fetch(`${base}/api/medical/health`, {
+      headers: HEADERS,
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function checkAsrHealth(): Promise<boolean> {
+  const base = getAsrUrl();
   if (!base) return false;
   try {
     const res = await fetch(`${base}/api/health`, {
@@ -42,7 +55,7 @@ export async function pronounce(audioBlob: Blob, targetWord: string): Promise<{
   feedback?: string;
   error?: string;
 }> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   const form = new FormData();
   form.append("audio", audioBlob, "recording.wav");
   form.append("target_word", targetWord);
@@ -56,12 +69,12 @@ export async function pronounce(audioBlob: Blob, targetWord: string): Promise<{
 }
 
 export function getReferenceAudioUrl(word: string): string {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   return `${base}/api/reference-audio/${encodeURIComponent(word)}`;
 }
 
 export async function playReferenceAudio(word: string): Promise<void> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   if (!base) return;
   const url = `${base}/api/reference-audio/${encodeURIComponent(word)}`;
   const res = await fetch(url, { headers: HEADERS });
@@ -83,7 +96,7 @@ export async function startTraining(speakerId = "child_01"): Promise<{
   message?: string;
   error?: string;
 }> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   const form = new FormData();
   form.append("speaker_id", speakerId);
   const res = await fetch(`${base}/api/train`, {
@@ -99,7 +112,7 @@ export async function getTrainingStatus(): Promise<{
   progress: string;
   speaker: string | null;
 }> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   const res = await fetch(`${base}/api/train/status`, { headers: HEADERS });
   return res.json();
 }
@@ -107,7 +120,7 @@ export async function getTrainingStatus(): Promise<{
 export async function getEnrolled(): Promise<{
   speakers: Record<string, { total_recordings: number; unique_words: number; has_adapter: boolean }>;
 }> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   const res = await fetch(`${base}/api/enrolled`, { headers: HEADERS });
   return res.json();
 }
@@ -123,7 +136,7 @@ export async function transcribe(audioBlob: Blob): Promise<{
   in_vocabulary: boolean;
   all_candidates: string[];
 }> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   const form = new FormData();
   form.append("audio", audioBlob, "recording.wav");
   const res = await fetch(`${base}/api/transcribe`, {
@@ -141,12 +154,45 @@ export async function fetchVocabulary(): Promise<Array<{
   is_sentence: boolean;
   has_reference_audio: boolean;
 }>> {
-  const base = getApiUrl();
+  const base = getAsrUrl();
   const res = await fetch(`${base}/api/vocabulary`, { headers: HEADERS });
   if (!res.ok) throw new Error(`Vocabulary failed: ${res.status}`);
   const data = await res.json();
   return data.vocabulary;
 }
+export async function predictAdaptive(features: {
+  response_time: number;
+  error_rate: number;
+  hesitation_count: number;
+  focus_ratio: number;
+  frustration_score: number;
+  movement_intensity: number;
+  question_id?: number;
+  is_answering?: boolean;
+}): Promise<{
+  action_id: number;
+  action_name: string;
+  reason: string;
+  T: number;
+  I: number;
+  F: number;
+  dqn_action_id: number;
+  override_applied: boolean;
+  q_values: { CONTINUE_LEVEL: number; PROVIDE_HINT: number; SENSORY_BREAK: number };
+  confidence: number;
+  question_id: number;
+  is_answering: boolean;
+}> {
+  const base = getApiUrl() || "http://localhost:8000";
+  const res = await fetch(`${base}/api/adaptive/predict`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...HEADERS },
+    body: JSON.stringify(features),
+  });
+  if (!res.ok) throw new Error(`Adaptive predict failed: ${res.status}`);
+  return res.json();
+}
+
 export async function analyzeMedicalImage(file: File): Promise<{
   score: number;
   label: string;
