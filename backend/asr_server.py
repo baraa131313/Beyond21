@@ -6,10 +6,14 @@ Run: python asr_server.py
 
 import os, sys, re, gc, io, pickle, tempfile, subprocess
 
-ESPEAK_DIR = r"C:\Program Files\eSpeak NG"
-FFMPEG_DIR = r"C:\Users\baraa\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin"
+ESPEAK_DIR = os.environ.get("ESPEAK_DIR", r"C:\Program Files\eSpeak NG")
+FFMPEG_DIR = os.environ.get("FFMPEG_DIR", "")
+if not FFMPEG_DIR:
+    import shutil
+    _found = shutil.which("ffmpeg")
+    FFMPEG_DIR = os.path.dirname(_found) if _found else ""
 for _dir in [ESPEAK_DIR, FFMPEG_DIR]:
-    if os.path.isdir(_dir):
+    if _dir and os.path.isdir(_dir):
         os.environ["PATH"] = _dir + os.pathsep + os.environ.get("PATH", "")
 if os.path.isdir(ESPEAK_DIR):
     os.environ["PHONEMIZER_ESPEAK_PATH"] = os.path.join(ESPEAK_DIR, "espeak-ng.exe")
